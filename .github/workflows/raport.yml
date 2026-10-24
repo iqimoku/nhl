@@ -1,0 +1,62 @@
+name: Raport NHL
+
+on:
+  schedule:
+    - cron: "17 11 * * *"
+    - cron: "17 20 * * *"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Data meczów RRRR-MM-DD (puste = dziś)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: raport-nhl
+  cancel-in-progress: false
+
+jobs:
+  raport:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalacja
+        run: pip install -r requirements.txt
+
+      - uses: actions/cache@v4
+        with:
+          path: cache
+          key: nhl-cache-${{ github.run_id }}
+          restore-keys: nhl-cache-
+
+      - name: Model
+        env:
+          DATE_IN: ${{ github.event.inputs.date }}
+        run: |
+          if [ -n "$DATE_IN" ]; then
+            python nhl_model.py --site docs --no-open --date "$DATE_IN"
+          else
+            python nhl_model.py --site docs --no-open
+          fi
+
+      - name: Zapis do repozytorium
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add docs
+          if git diff --cached --quiet; then
+            echo "Brak zmian."
+          else
+            git commit -m "Raport NHL $(date -u +%F)"
+            git pull --rebase
+            git push
+          fi
