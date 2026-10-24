@@ -109,7 +109,7 @@ td{font-variant-numeric:tabular-nums}
       <li><b>%</b> – szansa modelu na zdarzenie w tym meczu (rozkład Poissona). <b>Kurs fair</b> = 1 / szansa: jeśli bukmacher daje wyraźnie więcej, model widzi wartość.</li>
       <li><b>Oczek.</b> – oczekiwana liczba zdarzeń. <b>Na 60</b> – tempo zawodnika na 60 min gry po wygładzeniu (sezony: <span id="seas"></span>).</li>
       <li><b>TOI</b> – oczekiwany czas na lodzie (60% ostatnie 10 meczów, 40% średnia ważona).</li>
-      <li><b>Rywal ×</b> – obrona rywala vs średnia ligi (1,10 = traci o 10% więcej). <b>H2H ×</b> – korekta za historię przeciw temu rywalowi (ograniczona do 0,80–1,25, bo próba jest mała).</li>
+      <li><b>Rywal ×</b> – obrona rywala vs średnia ligi (1,10 = traci o 10% więcej). <b>Forma 10 / H2H</b> – np. „6 G · 6 m · gol w 3” = 6 goli w 6 meczach, gol padł w 3 z nich (przy strzałach: średnia na mecz i w ilu meczach było 3+). <b>H2H</b> obejmuje wszystkie mecze zawodnika przeciw temu rywalowi od sezonu <span id="h2hfrom"></span> (bieżący + 5 poprzednich, sezon zasadniczy). <b>H2H ×</b> – wynikająca z tego korekta (ograniczona do 0,80–1,25, bo próba jest mała).</li>
       <li>Status „nie grał w N ost. meczach” zwykle oznacza kontuzję lub odsunięcie – model nie zna aktualnych składów ani bramkarza rywala, sprawdź je przed meczem.</li>
     </ul>
   </div>
@@ -150,7 +150,8 @@ if(M.root !== null && M.root !== undefined){
 }
 
 $("#sub").textContent = `Mecze z dnia ${M.date} · ${M.games.length} spotkań · wygenerowano ${M.generated}`;
-$("#seas").textContent = M.seasons.map((s,i)=>`${s} ×${n2(M.weights[i])}`).join(", ");
+$("#h2hfrom").textContent = M.h2h_from || "";
+$("#seas").textContent =M.seasons.map((s,i)=>`${s} ×${n2(M.weights[i])}`).join(", ");
 
 const gamesEl = $("#games");
 function chip(id, top, label){
@@ -189,15 +190,20 @@ function cols(){
     {k:"match", t:"Mecz", l:true, v:r=>r.game, h:r=>`<b>${esc(r.team)}</b> <span class="match">${r.home?"vs":"@"} ${esc(r.opp)} · ${esc(r.time)}</span>`},
   ];
   const probCell = p => `<div class="prob"><span class="bar"><i style="width:${Math.min(100,p*100)}%"></i></span><b>${pc(p)}</b></div>`;
+  const HIT = {g:"gol", a:"asysta", p:"punkt", s:"3+"};
+  const hist = f => {
+    if(!f.gp) return `<span class="match">–</span>`;
+    const h = f["h"+m] ?? 0;
+    const main = m==="s" ? `${n2(f.s/f.gp,1)}/m` : `${f[m]} ${L}`;
+    return `<b>${main}</b> <span class="match">· ${f.gp} m · ${HIT[m]} w ${h}</span>`;
+  };
   const adj = x => `<span class="adj ${x>1.005?"up":x<0.995?"down":""}">${n2(x)}</span>`;
   const tail = [
     {k:"lam", t:"Oczek.", v:r=>r.m[m].lam, h:r=>n2(r.m[m].lam)},
     {k:"r60", t:"Na 60", v:r=>r.m[m].r60, h:r=>n2(r.m[m].r60)},
     {k:"toi", t:"TOI", v:r=>r.toi, h:r=>n2(r.toi,1)},
-    {k:"f10", t:`Forma 10 (${L})`, v:r=> r.f10.gp ? r.f10[m]/r.f10.gp : -1,
-      h:r=> m==="s" ? (r.f10.gp? n2(r.f10.s/r.f10.gp,1)+"/m" : "–") : `${r.f10[m]} / ${r.f10.gp}`},
-    {k:"h2h", t:`H2H (${L})`, v:r=> r.h2h.gp ? r.h2h[m]/r.h2h.gp : -1,
-      h:r=> !r.h2h.gp ? "–" : (m==="s" ? n2(r.h2h.s/r.h2h.gp,1)+"/m" : `${r.h2h[m]} / ${r.h2h.gp}`)},
+    {k:"f10", t:`Forma 10 (${L})`, v:r=> r.f10.gp ? r.f10[m]/r.f10.gp : -1, h:r=>hist(r.f10)},
+    {k:"h2h", t:`H2H (${L})`, v:r=> r.h2h.gp ? r.h2h[m]/r.h2h.gp : -1, h:r=>hist(r.h2h)},
     {k:"opp", t:"Rywal ×", v:r=>r.m[m].opp_f, h:r=>adj(r.m[m].opp_f)},
     {k:"h2hf", t:"H2H ×", v:r=>r.m[m].h2h_f, h:r=>adj(r.m[m].h2h_f)},
     {k:"gp", t:"Mecze", v:r=>r.gp, h:r=>r.gp},

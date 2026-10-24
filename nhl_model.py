@@ -47,7 +47,9 @@ API = "https://api-web.nhle.com/v1"
 STATS = "https://api.nhle.com/stats/rest/en"
 
 # ---------------------------------------------------------------- parametry modelu
-SEASON_WEIGHTS = [1.00, 0.70, 0.45, 0.30]   # bieżący sezon, -1, -2, -3
+SEASON_WEIGHTS = [1.00, 0.70, 0.45, 0.30]   # tempo zawodnika: bieżący sezon, -1, -2, -3
+H2H_SEASONS = 6                              # historia przeciw rywalowi: bieżący + 5 poprzednich sezonów
+RATE_SEASONS = len(SEASON_WEIGHTS)
 FORM_GAMES = 10                              # ostatnie N meczów dostaje dodatkową wagę
 FORM_BOOST = 1.5
 PRIOR_MINUTES = 250.0                        # "wirtualne" minuty średniego gracza (stabilizacja małych prób)
@@ -269,7 +271,8 @@ def get_team_factors(http: Http, as_of: dt.date, season: int):
 # ---------------------------------------------------------------- model
 def project(games, as_of: dt.date, posg: str, opp: str, is_home: bool, opp_f: dict):
     cutoff = as_of.isoformat()
-    hist = [g for g in games if g["date"] < cutoff]
+    hist_all = [g for g in games if g["date"] < cutoff]            # do H2H (do 6 sezonów)
+    hist = [g for g in hist_all if g["sidx"] < RATE_SEASONS]       # do tempa i czasu gry
     prior = PRIOR_RATE_60[posg]
     recent = hist[-FORM_GAMES:]
     recent_ids = {id(g) for g in recent}
@@ -294,7 +297,7 @@ def project(games, as_of: dt.date, posg: str, opp: str, is_home: bool, opp_f: di
     else:
         exp_toi = PRIOR_TOI[posg]
 
-    vs = [g for g in hist if g["opp"] == opp]
+    vs = [g for g in hist_all if g["opp"] == opp]
     h2h = {}
     for k in MARKETS:
         act = sum(g[k] for g in vs)
@@ -312,10 +315,12 @@ def project(games, as_of: dt.date, posg: str, opp: str, is_home: bool, opp_f: di
 
 
 def form_stats(games):
-    n = len(games)
-    if not n:
-        return {"gp": 0, "g": 0, "a": 0, "p": 0, "s": 0}
-    return {"gp": n, **{k: sum(g[k] for g in games) for k in MARKETS}}
+    """Sumy + w ilu meczach było zdarzenie (hg/ha/hp = min. 1, hs = min. 3 strzały)."""
+    out = {"gp": len(games)}
+    for k in MARKETS:
+        out[k] = sum(g[k] for g in games)
+        out["h" + k] = sum(1 for g in games if g[k] >= (3 if k == "s" else 1))
+    return out
 
 
 def build_row(pl, game, games, as_of, team_dates, factors, season):
@@ -366,7 +371,7 @@ def build_row(pl, game, games, as_of, team_dates, factors, season):
 # ---------------------------------------------------------------- przebieg dzienny
 def analyse_day(http: Http, day: dt.date, workers: int, historical_rosters=False, quiet=False):
     season = season_of(day)
-    seasons = [season_minus(season, k) for k in range(len(SEASON_WEIGHTS))]
+    seasons = [season_minus(season, k) for k in range(max(H2H_SEASONS, RATE_SEASONS))]
     games = get_schedule(http, day)
     if not games:
         return [], [], {}
@@ -425,8 +430,12 @@ CSV_COLS = [
     ("Strzały 4+ %", lambda r: pct(r["m"]["s"]["p4"])),
     ("Forma10 G", lambda r: r["f10"]["g"]), ("Forma10 A", lambda r: r["f10"]["a"]),
     ("Forma10 SOG", lambda r: r["f10"]["s"]), ("Forma10 mecze", lambda r: r["f10"]["gp"]),
+    ("Forma10 mecze z golem", lambda r: r["f10"]["hg"]), ("Forma10 mecze z punktem", lambda r: r["f10"]["hp"]),
     ("H2H mecze", lambda r: r["h2h"]["gp"]), ("H2H G", lambda r: r["h2h"]["g"]),
-    ("H2H A", lambda r: r["h2h"]["a"]), ("H2H SOG", lambda r: r["h2h"]["s"]),
+    ("H2H mecze z golem", lambda r: r["h2h"]["hg"]),
+    ("H2H A", lambda r: r["h2h"]["a"]), ("H2H mecze z asystą", lambda r: r["h2h"]["ha"]),
+    ("H2H PKT", lambda r: r["h2h"]["p"]), ("H2H mecze z punktem", lambda r: r["h2h"]["hp"]),
+    ("H2H SOG", lambda r: r["h2h"]["s"]), ("H2H mecze z 3+ SOG", lambda r: r["h2h"]["hs"]),
     ("Wsp. obrony rywala (gole)", lambda r: r["m"]["g"]["opp_f"]),
     ("Wsp. obrony rywala (strzały)", lambda r: r["m"]["s"]["opp_f"]),
 ]
@@ -459,6 +468,7 @@ def write_html(rows, games, day: dt.date, path: Path, root: str | None = None, c
         "generated": dt.datetime.now(TZ_PL).strftime("%Y-%m-%d %H:%M"),
         "seasons": [season_label(season_minus(season, k)) for k in range(len(SEASON_WEIGHTS))],
         "weights": SEASON_WEIGHTS,
+        "h2h_from": season_label(season_minus(season, H2H_SEASONS - 1)),
         "games": [{
             "id": g["id"], "label": f'{g["awayTeam"]["abbrev"]} @ {g["homeTeam"]["abbrev"]}',
             "away": f'{nm(g["awayTeam"].get("placeName"))} {nm(g["awayTeam"].get("commonName"))}'.strip(),
