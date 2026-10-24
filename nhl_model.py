@@ -364,6 +364,11 @@ def build_row(pl, game, games, as_of, team_dates, factors, season):
         "status": status, "inactive": status != "OK",
         "gp": len(hist), "gp_cur": len(cur), "toi": round(exp_toi, 1),
         "f10": form_stats(hist[-FORM_GAMES:]), "h2h": form_stats(vs),
+        # szczegóły do rozwijanej linii: [data, dom 1/0, drużyna, rywal, G, A, SOG, TOI], od najnowszych
+        "h2h_log": [[g["date"], int(g["home"]), g["team"], g["opp"], g["g"], g["a"], g["s"], round(g["toi"], 1)]
+                    for g in reversed(vs)],
+        "f10_log": [[g["date"], int(g["home"]), g["team"], g["opp"], g["g"], g["a"], g["s"], round(g["toi"], 1)]
+                    for g in reversed(hist[-FORM_GAMES:])],
         "m": m, "season": season,
     }
 

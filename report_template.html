@@ -62,6 +62,20 @@ tr.inactive{opacity:.55}
 td{font-variant-numeric:tabular-nums}
 .adj.up{color:var(--good)} .adj.down{color:var(--bad)}
 .empty{padding:30px;text-align:center;color:var(--muted)}
+.tog{font:inherit;font-size:11px;font-weight:600;margin-left:8px;padding:2px 7px;border-radius:6px;cursor:pointer;
+  border:1px solid var(--line);background:var(--panel);color:var(--accent)}
+.tog.on{background:var(--accent-soft);border-color:var(--accent)}
+tr.detail>td{background:var(--bg);padding:12px 14px;text-align:left;white-space:normal}
+tr.detail:hover{background:none}
+.dgrid{display:flex;flex-wrap:wrap;gap:16px}
+.dbox{flex:1 1 360px;min-width:0}
+.dbox h4{margin:0 0 6px;font-size:13px}
+.dbox h4 span{color:var(--muted);font-weight:400}
+table.mini{min-width:0;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;border-collapse:separate;border-spacing:0}
+table.mini th,table.mini td{padding:4px 8px;font-size:12px;position:static}
+table.mini tr:last-child td{border-bottom:0}
+table.mini td.hit{font-weight:700;color:var(--good)}
+table.mini tr.sum td{font-weight:700;background:var(--accent-soft)}
 .notes{margin-top:18px;color:var(--muted);font-size:13px;max-width:900px}
 .notes h3{color:var(--ink);font-size:14px;margin:16px 0 6px}
 .notes li{margin:3px 0}
@@ -186,7 +200,7 @@ const LBL = {g:"G", a:"A", p:"PKT", s:"SOG"};
 function cols(){
   const m = st.m, L = LBL[m];
   const base = [
-    {k:"name", t:"Zawodnik", l:true, v:r=>r.name, h:r=>`<span class="name">${esc(r.name)}</span><span class="pos">${esc(r.pos)}${r.num?" #"+r.num:""}</span>${r.inactive?`<span class="badge">${esc(r.status)}</span>`:""}`},
+    {k:"name", t:"Zawodnik", l:true, v:r=>r.name, h:r=>`<span class="name">${esc(r.name)}</span><span class="pos">${esc(r.pos)}${r.num?" #"+r.num:""}</span><button class="tog ${OPEN.has(r.id)?"on":""}" data-id="${r.id}">H2H ${OPEN.has(r.id)?"▾":"▸"}</button>${r.inactive?`<span class="badge">${esc(r.status)}</span>`:""}`},
     {k:"match", t:"Mecz", l:true, v:r=>r.game, h:r=>`<b>${esc(r.team)}</b> <span class="match">${r.home?"vs":"@"} ${esc(r.opp)} · ${esc(r.time)}</span>`},
   ];
   const probCell = p => `<div class="prob"><span class="bar"><i style="width:${Math.min(100,p*100)}%"></i></span><b>${pc(p)}</b></div>`;
@@ -245,7 +259,40 @@ function render(){
   });
   $("#t tbody").innerHTML = rows.length ? rows.map((r,i) =>
     `<tr class="${r.inactive?"inactive":""}"><td class="l">${i+1}</td>` + C.map(c=>`<td class="${c.l?"l":""}">${c.h(r)}</td>`).join("") + "</tr>"
+    + (OPEN.has(r.id) ? `<tr class="detail"><td colspan="${C.length+1}">${detail(r)}</td></tr>` : "")
   ).join("") : `<tr><td colspan="${C.length+1}" class="empty">Brak zawodników dla tych filtrów.</td></tr>`;
+  $("#t tbody").querySelectorAll(".tog").forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    const id = +b.dataset.id;
+    OPEN.has(id) ? OPEN.delete(id) : OPEN.add(id);
+    render();
+  });
+}
+
+const OPEN = new Set();
+function fmtDate(s){ const [y,mo,d] = s.split("-"); return `${d}.${mo}.${y}`; }
+function seasonOf(s){ const [y,mo] = s.split("-").map(Number); const a = mo >= 8 ? y : y-1; return `${a}/${String(a+1).slice(2)}`; }
+function logTable(log, showOpp){
+  if(!log || !log.length) return `<p class="match">Brak meczów.</p>`;
+  const hit = (v, t) => `<td class="${v>=t?"hit":""}">${v}</td>`;
+  let sg=0, sa=0, ss=0, st3=0, wg=0, wp=0;
+  const body = log.map(([d, home, team, opp, g, a, s, toi]) => {
+    sg+=g; sa+=a; ss+=s; if(g>0) wg++; if(g+a>0) wp++; if(s>=3) st3++;
+    return `<tr><td class="l">${fmtDate(d)}</td><td class="l match">${seasonOf(d)}</td>`
+      + `<td class="l">${esc(team)} ${home?"vs":"@"} ${esc(opp)}</td>`
+      + hit(g,1) + hit(a,1) + hit(g+a,1) + hit(s,3) + `<td>${n2(toi,1)}</td></tr>`;
+  }).join("");
+  const n = log.length;
+  const sum = `<tr class="sum"><td class="l" colspan="3">Razem ${n} m · gol w ${wg} · punkt w ${wp} · 3+ SOG w ${st3}</td>`
+    + `<td>${sg}</td><td>${sa}</td><td>${sg+sa}</td><td>${n2(ss/n,1)}/m</td><td></td></tr>`;
+  return `<table class="mini"><thead><tr><th class="l">Data</th><th class="l">Sezon</th><th class="l">Mecz</th>`
+    + `<th>G</th><th>A</th><th>PKT</th><th>SOG</th><th>TOI</th></tr></thead><tbody>${body}${sum}</tbody></table>`;
+}
+function detail(r){
+  return `<div class="dgrid">
+    <div class="dbox"><h4>H2H przeciw ${esc(r.opp)} <span>· od sezonu ${esc(M.h2h_from||"")}, sezon zasadniczy</span></h4>${logTable(r.h2h_log)}</div>
+    <div class="dbox"><h4>Ostatnie 10 meczów <span>· forma</span></h4>${logTable(r.f10_log)}</div>
+  </div>`;
 }
 render();
 </script>
