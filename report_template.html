@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NHL – szanse zawodników</title>
+<style>
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --ink:#14171c; --muted:#5d6673; --line:#e3e6eb;
+  --accent:#0b5fff; --accent-soft:#e6eeff; --warn:#b45309; --warn-soft:#fff4e5;
+  --bar:#0b5fff; --bar-bg:#edf0f4; --good:#0f7b4f; --bad:#b42318;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1115; --panel:#171a20; --ink:#e8ebf0; --muted:#98a1ae; --line:#2a2f38;
+    --accent:#6e9bff; --accent-soft:#1d2a45; --warn:#f0a050; --warn-soft:#3a2a15;
+    --bar:#6e9bff; --bar-bg:#252a33; --good:#4cc38a; --bad:#ff7a6b;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --panel:#171a20; --ink:#e8ebf0; --muted:#98a1ae; --line:#2a2f38;
+  --accent:#6e9bff; --accent-soft:#1d2a45; --warn:#f0a050; --warn-soft:#3a2a15;
+  --bar:#6e9bff; --bar-bg:#252a33; --good:#4cc38a; --bad:#ff7a6b;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1280px;margin:0 auto;padding:20px 16px 48px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 16px;margin-bottom:16px}
+h1{font-size:22px;margin:0;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:13px}
+.games{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:14px;scrollbar-width:thin}
+.chip{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:10px;
+  padding:8px 12px;cursor:pointer;text-align:left;font:inherit}
+.chip small{display:block;color:var(--muted);font-size:11px}
+.chip b{font-size:13px}
+.chip.on{border-color:var(--accent);background:var(--accent-soft)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow-x:auto}
+.tab{border:0;background:none;color:var(--muted);font:600 14px/1 inherit;font-family:inherit;padding:10px 14px;cursor:pointer;
+  border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tab.on{color:var(--ink);border-bottom-color:var(--accent)}
+.controls{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-bottom:12px}
+.controls input[type=search],.controls select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);
+  border-radius:8px;padding:7px 10px}
+.controls label{color:var(--muted);font-size:13px;display:flex;align-items:center;gap:6px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:900px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{font-size:12px;color:var(--muted);font-weight:600;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--panel)}
+th.l,td.l{text-align:left}
+th.sorted{color:var(--ink)}
+tbody tr:hover{background:var(--accent-soft)}
+tr.inactive{opacity:.55}
+.name{font-weight:600}
+.pos{color:var(--muted);font-size:12px;margin-left:4px}
+.badge{display:inline-block;font-size:11px;padding:1px 6px;border-radius:6px;background:var(--warn-soft);color:var(--warn);margin-left:6px}
+.match{color:var(--muted);font-size:12px}
+.prob{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.prob .bar{width:70px;height:6px;border-radius:3px;background:var(--bar-bg);overflow:hidden}
+.prob .bar i{display:block;height:100%;background:var(--bar)}
+.prob b{min-width:44px;font-variant-numeric:tabular-nums}
+td{font-variant-numeric:tabular-nums}
+.adj.up{color:var(--good)} .adj.down{color:var(--bad)}
+.empty{padding:30px;text-align:center;color:var(--muted)}
+.notes{margin-top:18px;color:var(--muted);font-size:13px;max-width:900px}
+.notes h3{color:var(--ink);font-size:14px;margin:16px 0 6px}
+.notes li{margin:3px 0}
+.nav{margin-left:auto;display:flex;gap:8px;align-items:center}
+.btn,.nav select{font:inherit;font-size:12px;border:1px solid var(--line);background:var(--panel);color:var(--muted);
+  border-radius:8px;padding:5px 9px;cursor:pointer;text-decoration:none}
+.nav select{color:var(--ink)}
+[hidden]{display:none !important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>NHL · szanse zawodników</h1>
+    <span class="sub" id="sub"></span>
+    <div class="nav">
+      <select id="day" hidden aria-label="Dzień"></select>
+      <a id="csv" class="btn" hidden download>CSV</a>
+      <button class="btn" id="theme">Motyw</button>
+    </div>
+  </header>
+
+  <div class="games" id="games"></div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-m="g">Gole</button>
+    <button class="tab" data-m="a">Asysty</button>
+    <button class="tab" data-m="p">Punkty (G+A)</button>
+    <button class="tab" data-m="s">Strzały</button>
+  </div>
+
+  <div class="controls">
+    <input type="search" id="q" placeholder="Szukaj zawodnika…">
+    <select id="team"><option value="">Wszystkie drużyny</option></select>
+    <select id="pos"><option value="">Wszyscy</option><option value="F">Napastnicy</option><option value="D">Obrońcy</option></select>
+    <label>min. <input type="range" id="min" min="0" max="80" step="5" value="0"> <span id="minv">0%</span></label>
+    <label><input type="checkbox" id="hide" checked> ukryj niegrających ostatnio</label>
+  </div>
+
+  <div class="card"><div class="scroll"><table id="t"><thead></thead><tbody></tbody></table></div></div>
+
+  <div class="notes">
+    <h3>Jak czytać</h3>
+    <ul>
+      <li><b>%</b> – szansa modelu na zdarzenie w tym meczu (rozkład Poissona). <b>Kurs fair</b> = 1 / szansa: jeśli bukmacher daje wyraźnie więcej, model widzi wartość.</li>
+      <li><b>Oczek.</b> – oczekiwana liczba zdarzeń. <b>Na 60</b> – tempo zawodnika na 60 min gry po wygładzeniu (sezony: <span id="seas"></span>).</li>
+      <li><b>TOI</b> – oczekiwany czas na lodzie (60% ostatnie 10 meczów, 40% średnia ważona).</li>
+      <li><b>Rywal ×</b> – obrona rywala vs średnia ligi (1,10 = traci o 10% więcej). <b>H2H ×</b> – korekta za historię przeciw temu rywalowi (ograniczona do 0,80–1,25, bo próba jest mała).</li>
+      <li>Status „nie grał w N ost. meczach” zwykle oznacza kontuzję lub odsunięcie – model nie zna aktualnych składów ani bramkarza rywala, sprawdź je przed meczem.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const DATA = __DATA__;
+const M = DATA.meta, R = DATA.rows;
+const st = {m:"g", game:"", q:"", team:"", pos:"", min:0, hide:true, sort:null, dir:-1};
+const $ = s => document.querySelector(s);
+const pc = p => (p*100).toFixed(1).replace(".", ",") + "%";
+const n2 = (x,d=2) => Number(x).toFixed(d).replace(".", ",");
+const fair = p => p > 0.001 ? n2(1/p) : "–";
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+try{ const t = localStorage.getItem("nhl-theme"); if(t) document.documentElement.dataset.theme = t; }catch(e){}
+$("#theme").onclick = () => {
+  const cur = document.documentElement.dataset.theme ||
+    (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  const nx = cur === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = nx;
+  try{ localStorage.setItem("nhl-theme", nx); }catch(e){}
+};
+
+if(M.csv){ const a = $("#csv"); a.href = M.csv; a.hidden = false; }
+if(M.root !== null && M.root !== undefined){
+  fetch(M.root + "days.json", {cache:"no-store"}).then(r => r.json()).then(list => {
+    const s = $("#day");
+    list.forEach(d => {
+      const o = document.createElement("option");
+      o.value = d.date; o.textContent = `${d.date} · ${d.games} mecz.`;
+      if(d.date === M.date) o.selected = true;
+      s.appendChild(o);
+    });
+    if(list.length > 1){ s.hidden = false; }
+    s.onchange = () => { location.href = M.root + "d/" + s.value + ".html"; };
+  }).catch(() => {});
+}
+
+$("#sub").textContent = `Mecze z dnia ${M.date} · ${M.games.length} spotkań · wygenerowano ${M.generated}`;
+$("#seas").textContent = M.seasons.map((s,i)=>`${s} ×${n2(M.weights[i])}`).join(", ");
+
+const gamesEl = $("#games");
+function chip(id, top, label){
+  const b = document.createElement("button");
+  b.className = "chip" + (st.game===id ? " on" : "");
+  b.innerHTML = `<small>${esc(top)}</small><b>${esc(label)}</b>`;
+  b.onclick = () => { st.game = id; renderChips(); render(); };
+  return b;
+}
+function renderChips(){
+  gamesEl.innerHTML = "";
+  gamesEl.appendChild(chip("", "wszystkie", "Wszystkie mecze"));
+  M.games.forEach(g => gamesEl.appendChild(chip(String(g.id), g.time ? g.time + " (PL)" : "", g.label)));
+}
+renderChips();
+
+[...new Set(R.map(r=>r.team))].sort().forEach(t => {
+  const o = document.createElement("option"); o.value = o.textContent = t; $("#team").appendChild(o);
+});
+
+document.querySelectorAll(".tab").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("on", x===b));
+  st.m = b.dataset.m; st.sort = null; st.dir = -1; render();
+});
+$("#q").oninput = e => { st.q = e.target.value.toLowerCase(); render(); };
+$("#team").onchange = e => { st.team = e.target.value; render(); };
+$("#pos").onchange = e => { st.pos = e.target.value; render(); };
+$("#min").oninput = e => { st.min = +e.target.value; $("#minv").textContent = st.min + "%"; render(); };
+$("#hide").onchange = e => { st.hide = e.target.checked; render(); };
+
+const LBL = {g:"G", a:"A", p:"PKT", s:"SOG"};
+function cols(){
+  const m = st.m, L = LBL[m];
+  const base = [
+    {k:"name", t:"Zawodnik", l:true, v:r=>r.name, h:r=>`<span class="name">${esc(r.name)}</span><span class="pos">${esc(r.pos)}${r.num?" #"+r.num:""}</span>${r.inactive?`<span class="badge">${esc(r.status)}</span>`:""}`},
+    {k:"match", t:"Mecz", l:true, v:r=>r.game, h:r=>`<b>${esc(r.team)}</b> <span class="match">${r.home?"vs":"@"} ${esc(r.opp)} · ${esc(r.time)}</span>`},
+  ];
+  const probCell = p => `<div class="prob"><span class="bar"><i style="width:${Math.min(100,p*100)}%"></i></span><b>${pc(p)}</b></div>`;
+  const adj = x => `<span class="adj ${x>1.005?"up":x<0.995?"down":""}">${n2(x)}</span>`;
+  const tail = [
+    {k:"lam", t:"Oczek.", v:r=>r.m[m].lam, h:r=>n2(r.m[m].lam)},
+    {k:"r60", t:"Na 60", v:r=>r.m[m].r60, h:r=>n2(r.m[m].r60)},
+    {k:"toi", t:"TOI", v:r=>r.toi, h:r=>n2(r.toi,1)},
+    {k:"f10", t:`Forma 10 (${L})`, v:r=> r.f10.gp ? r.f10[m]/r.f10.gp : -1,
+      h:r=> m==="s" ? (r.f10.gp? n2(r.f10.s/r.f10.gp,1)+"/m" : "–") : `${r.f10[m]} / ${r.f10.gp}`},
+    {k:"h2h", t:`H2H (${L})`, v:r=> r.h2h.gp ? r.h2h[m]/r.h2h.gp : -1,
+      h:r=> !r.h2h.gp ? "–" : (m==="s" ? n2(r.h2h.s/r.h2h.gp,1)+"/m" : `${r.h2h[m]} / ${r.h2h.gp}`)},
+    {k:"opp", t:"Rywal ×", v:r=>r.m[m].opp_f, h:r=>adj(r.m[m].opp_f)},
+    {k:"h2hf", t:"H2H ×", v:r=>r.m[m].h2h_f, h:r=>adj(r.m[m].h2h_f)},
+    {k:"gp", t:"Mecze", v:r=>r.gp, h:r=>r.gp},
+  ];
+  let mid;
+  if(m === "s"){
+    mid = [2,3,4].map(t => ({k:"p"+t, t:`${t}+ strzały`, v:r=>r.m.s["p"+t], h:r=>probCell(r.m.s["p"+t]), main:t===3}));
+    mid.push({k:"fair3", t:"Kurs fair 3+", v:r=>r.m.s.p3, h:r=>fair(r.m.s.p3)});
+  } else {
+    const name = {g:"Gol", a:"Asysta", p:"Punkt"}[m];
+    mid = [
+      {k:"p1", t:`${name} %`, v:r=>r.m[m].p1, h:r=>probCell(r.m[m].p1), main:true},
+      {k:"fair", t:"Kurs fair", v:r=>r.m[m].p1, h:r=>fair(r.m[m].p1)},
+    ];
+    if(m==="p") mid.push({k:"p2", t:"2+ pkt", v:r=>r.m.p.p2, h:r=>pc(r.m.p.p2)});
+  }
+  return [...base, ...mid, ...tail];
+}
+function mainProb(r){ return st.m==="s" ? r.m.s.p3 : r.m[st.m].p1; }
+
+function render(){
+  const C = cols();
+  if(!st.sort) st.sort = C.find(c=>c.main).k;
+  const sc = C.find(c=>c.k===st.sort) || C.find(c=>c.main);
+  let rows = R.filter(r =>
+    (!st.game || String(r.gameId)===st.game) &&
+    (!st.team || r.team===st.team) &&
+    (!st.pos || r.posg===st.pos) &&
+    (!st.hide || !r.inactive) &&
+    (!st.q || r.name.toLowerCase().includes(st.q)) &&
+    mainProb(r)*100 >= st.min);
+  rows.sort((a,b)=>{ const x=sc.v(a), y=sc.v(b); return (x<y?-1:x>y?1:0)*st.dir; });
+
+  $("#t thead").innerHTML = "<tr><th class='l'>#</th>" + C.map(c =>
+    `<th class="${c.l?"l":""} ${c.k===sc.k?"sorted":""}" data-k="${c.k}">${esc(c.t)}${c.k===sc.k?(st.dir<0?" ↓":" ↑"):""}</th>`).join("") + "</tr>";
+  $("#t thead").querySelectorAll("th[data-k]").forEach(th => th.onclick = () => {
+    if(st.sort===th.dataset.k) st.dir *= -1; else { st.sort = th.dataset.k; st.dir = (th.dataset.k==="name"||th.dataset.k==="match") ? 1 : -1; }
+    render();
+  });
+  $("#t tbody").innerHTML = rows.length ? rows.map((r,i) =>
+    `<tr class="${r.inactive?"inactive":""}"><td class="l">${i+1}</td>` + C.map(c=>`<td class="${c.l?"l":""}">${c.h(r)}</td>`).join("") + "</tr>"
+  ).join("") : `<tr><td colspan="${C.length+1}" class="empty">Brak zawodników dla tych filtrów.</td></tr>`;
+}
+render();
+</script>
+</body>
+</html>
