@@ -124,6 +124,14 @@ Wszystkie parametry są na górze pliku `nhl_model.py` (sekcja „parametry mode
 
 Serie i miesiące są tylko **podglądem** i nie zmieniają procentów. Czy na „przełamanie serii” warto grać, rozstrzyga backtest (niżej): pokazuje, czy zawodnicy po serii zer trafiają częściej, niż przewidział model.
 
+## Kalibracja
+
+Backtest nie tylko sprawdza model, ale też go **kalibruje**: dopasowuje poprawkę dla goli, asyst, punktów i strzałów, tak żeby prognoza 30% sprawdzała się w około 30% przypadków. Dla strzałów dobiera też rozrzut (rozkład ujemny dwumianowy zamiast Poissona). Wynik zapisuje do pliku **calibration.json** w repozytorium, a raport dzienny korzysta z niego automatycznie. W nagłówku strony widać wtedy „skalibrowany (backtest … n=…)”.
+
+Uczciwość testu: backtest najpierw uczy kalibrację na starszych 75% okresu, a sprawdza ją na najnowszych 25%, których nie widziała. Wyniki „PRZED” i „PO kalibracji” na tych danych są w Summary. Ostateczna kalibracja zapisana do pliku jest uczona na całym okresie.
+
+Backtest warto puszczać ponownie raz na kilka miesięcy (np. po zakończeniu sezonu), żeby kalibracja uwzględniała nowe dane.
+
 ## Sprawdź, czy model trafia (backtest)
 
 **Najprościej na GitHubie:** wejdź w **Actions**, wybierz **Backtest NHL** i kliknij **Run workflow**. Wpisz zakres dat, np. 2025-11-01 → 2026-04-15. Pierwszy przebieg na pełnym sezonie trwa 1–3 godziny, bo pobiera historię kilkuset zawodników z 6 sezonów. Wyniki pojawią się na stronie przebiegu (w Summary), a pliki do pobrania w sekcji „Artifacts”.

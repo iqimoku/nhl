@@ -32,6 +32,8 @@ import webbrowser
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
+import calib
+
 try:
     import requests
 except ImportError:  # pragma: no cover
@@ -67,6 +69,7 @@ SHOT_MODEL_WEIGHT = 0.70                     # gole: 70% ze strzałów × skutec
 SH_PRIOR = {"F": 0.105, "D": 0.050}          # typowa skuteczność strzałów wg pozycji
 SH_PRIOR_SHOTS = 120                         # "wirtualne" strzały do wygładzenia skuteczności
 LUCK_GAMES = 15                              # okno wskaźnika pech / fart
+CALIB = None                                 # kalibracja z backtestu (calibration.json), ładowana w main()
 
 
 # ---------------------------------------------------------------- HTTP + cache
@@ -407,12 +410,14 @@ def build_row(pl, game, games, as_of, team_dates, factors, season):
 
     m = {}
     for k in MARKETS:
-        lam = proj[k]["lam"]
-        e = {"lam": round(lam, 3), "r60": round(proj[k]["r60"], 2),
+        lam_raw = proj[k]["lam"]
+        lam = calib.apply(CALIB, k, lam_raw)
+        e = {"lam": round(lam, 3), "lam_raw": round(lam_raw, 4), "r60": round(proj[k]["r60"], 2),
              "h2h_f": round(proj[k]["h2h_f"], 3), "opp_f": round(proj[k]["opp_f"], 3)}
         if k == "s":
+            r_nb = CALIB["s"].get("r") if CALIB and "s" in CALIB else None
             for t in (1, 2, 3, 4, 5):
-                e[f"p{t}"] = round(pois_ge(lam, t), 4)
+                e[f"p{t}"] = round(calib.nb_ge(lam, r_nb, t) if r_nb else pois_ge(lam, t), 4)
         else:
             e["p1"] = round(pois_ge(lam, 1), 4)
             e["p2"] = round(pois_ge(lam, 2), 4)
@@ -552,6 +557,7 @@ def write_html(rows, games, day: dt.date, path: Path, root: str | None = None, c
         "generated": dt.datetime.now(TZ_PL).strftime("%Y-%m-%d %H:%M"),
         "seasons": [season_label(season_minus(season, k)) for k in range(len(SEASON_WEIGHTS))],
         "weights": SEASON_WEIGHTS,
+        "calib": (CALIB or {}).get("_info"),
         "h2h_from": season_label(season_minus(season, H2H_SEASONS - 1)),
         "games": [{
             "id": g["id"], "label": f'{g["awayTeam"]["abbrev"]} @ {g["homeTeam"]["abbrev"]}',
@@ -590,72 +596,112 @@ def write_site(rows, games, day: dt.date, site: Path, elc: bool = False):
 
 
 # ---------------------------------------------------------------- backtest
-def backtest(http: Http, start: dt.date, end: dt.date, workers: int, out_dir: Path):
-    targets = [("Gol 1+", "g", 1), ("Asysta 1+", "a", 1), ("Punkt 1+", "p", 1),
-               ("Strzały 2+", "s", 2), ("Strzały 3+", "s", 3), ("Strzały 4+", "s", 4)]
-    recs = {t[0]: [] for t in targets}
-    detail = []
-    streak_recs = []   # (seria bez G, seria bez PKT, pech/fart, P(gol), P(pkt), gol?, pkt?)
+def backtest(http: Http, start: dt.date, end: dt.date, workers: int, out_dir: Path, base: Path, save_calib=True):
+    """Zbiera SUROWE prognozy (bez kalibracji), uczy kalibrację na starszych danych,
+    sprawdza ją na najnowszych (których nie widziała), a na koniec zapisuje kalibrację z całości."""
+    import numpy as np
+    global CALIB
+    saved, CALIB = CALIB, None
+    cols = {k: [] for k in ("date", "lam_g", "lam_a", "lam_p", "lam_s", "g", "a", "p", "s", "sg", "sp", "luck")}
+    names = []
     day = start
-    while day <= end:
-        rows, games, logs = analyse_day(http, day, workers, historical_rosters=True, quiet=True)
-        n_day = 0
-        for r in rows:
-            actual = next((g for g in logs.get(r["id"], []) if g["date"] == day.isoformat()
-                           and g["team"] == r["team"]), None)
-            if not actual:
-                continue  # nie zagrał
-            n_day += 1
-            for label, k, t in targets:
-                p = r["m"][k][f"p{t}"]
-                y = 1 if actual[k] >= t else 0
-                recs[label].append((p, y))
-            streak_recs.append((r["streak"]["g"], r["streak"]["p"], r["luck"]["diff"],
-                                r["m"]["g"]["p1"], r["m"]["p"]["p1"], int(actual["g"] > 0), int(actual["p"] > 0)))
-            detail.append([day.isoformat(), r["name"], r["team"], r["opp"],
-                           r["m"]["g"]["p1"], actual["g"], r["m"]["a"]["p1"], actual["a"],
-                           r["m"]["p"]["p1"], actual["p"], r["m"]["s"]["lam"], actual["s"]])
-        print(f"  {day}: {len(games)} meczów, {n_day} zawodników ocenionych")
-        day += dt.timedelta(days=1)
+    try:
+        while day <= end:
+            rows, games, logs = analyse_day(http, day, workers, historical_rosters=True, quiet=True)
+            n_day = 0
+            for r in rows:
+                actual = next((g for g in logs.get(r["id"], []) if g["date"] == day.isoformat()
+                               and g["team"] == r["team"]), None)
+                if not actual:
+                    continue  # nie zagrał
+                n_day += 1
+                cols["date"].append(day.isoformat())
+                for k in MARKETS:
+                    cols["lam_" + k].append(r["m"][k]["lam_raw"])
+                    cols[k].append(actual[k])
+                cols["sg"].append(r["streak"]["g"])
+                cols["sp"].append(r["streak"]["p"])
+                cols["luck"].append(r["luck"]["diff"])
+                names.append((r["name"], r["team"], r["opp"]))
+            print(f"  {day}: {len(games)} meczów, {n_day} zawodników ocenionych", flush=True)
+            day += dt.timedelta(days=1)
+    finally:
+        CALIB = saved
 
-    if not detail:
+    n = len(cols["date"])
+    if not n:
         print("Brak danych do backtestu w tym zakresie.")
         return
-    print("\n=== WYNIKI BACKTESTU ===")
-    print(f"{'Rynek':<12}{'N':>7}{'Śr. prognoza':>14}{'Wynik real.':>13}{'Brier':>9}{'Brier bazowy':>14}{'Poprawa':>9}")
-    lines = []
-    for label, _, _ in targets:
-        data = recs[label]
-        n = len(data)
-        avg_p = sum(p for p, _ in data) / n
-        rate = sum(y for _, y in data) / n
-        brier = sum((p - y) ** 2 for p, y in data) / n
-        base = sum((rate - y) ** 2 for _, y in data) / n
-        skill = 1 - brier / base if base else 0
-        print(f"{label:<12}{n:>7}{avg_p*100:>13.1f}%{rate*100:>12.1f}%{brier:>9.4f}{base:>14.4f}{skill*100:>8.1f}%")
-        lines.append((label, data))
+    D = {k: (np.array(v) if k == "date" else np.array(v, dtype=float)) for k, v in cols.items()}
 
-    print("\n=== KALIBRACJA (czy 30% naprawdę wpada w ~30% przypadków) ===")
-    for label, data in lines:
-        print(f"\n{label}")
-        buckets = [(0, .1), (.1, .2), (.2, .3), (.3, .4), (.4, .5), (.5, .6), (.6, .7), (.7, .8), (.8, 1.01)]
-        for lo, hi in buckets:
-            b = [(p, y) for p, y in data if lo <= p < hi]
-            if len(b) < 20:
-                continue
-            print(f"  prognoza {lo*100:>3.0f}-{min(hi,1)*100:>3.0f}%: śr. {sum(p for p,_ in b)/len(b)*100:5.1f}%"
-                  f"  → faktycznie {sum(y for _,y in b)/len(b)*100:5.1f}%   (n={len(b)})")
+    # podział w czasie: kalibracja uczy się na 75% najstarszych dni, test na 25% najnowszych
+    dates = sorted(set(cols["date"]))
+    cut = dates[int(len(dates) * 0.75)] if len(dates) >= 8 else None
+    if cut:
+        tr = D["date"] < cut
+        Dtr = {k: v[tr] for k, v in D.items()}
+        Dte = {k: v[~tr] for k, v in D.items()}
+        print(f"\nUczę kalibrację na {int(tr.sum())} występach (do {cut}), test na {int((~tr).sum())} (od {cut})...")
+        cal_tr = calib.fit_all(Dtr)
+        print("\n=== TEST NA DANYCH, KTÓRYCH KALIBRACJA NIE WIDZIAŁA ===")
+        print("(najnowsze 25% okresu – uczciwe porównanie: przed vs po kalibracji)")
+        evaluate(Dte, None, "PRZED kalibracją (surowy model)")
+        evaluate(Dte, cal_tr, "PO kalibracji")
 
-    report_streaks(streak_recs)
+    print(f"\nUczę ostateczną kalibrację na wszystkich {n} występach...")
+    cal = calib.fit_all(D)
+    cal["_info"] = {"od": str(start), "do": str(end), "n": n,
+                    "utworzono": dt.datetime.now(TZ_PL).strftime("%Y-%m-%d %H:%M")}
+    print("Parametry: " + ", ".join(
+        f"{k}: a={v['a']}, b={v['b']}" + (f", r={v['r']}" if "r" in v else "") for k, v in cal.items() if k != "_info"))
+    if save_calib:
+        calib.save(cal, base)
+        print(f"Zapisano {base / calib.FILE_NAME} – raport dzienny będzie z niej korzystał.")
+
+    evaluate(D, cal, "CAŁY OKRES – PO KALIBRACJI", detail_buckets=True)
+
+    P = calib.probs(D, cal)
+    report_streaks(list(zip(D["sg"], D["sp"], D["luck"], P["Gol 1+"][0], P["Punkt 1+"][0],
+                            P["Gol 1+"][1], P["Punkt 1+"][1])))
 
     path = out_dir / f"backtest_{start}_{end}.csv"
     with path.open("w", newline="", encoding="utf-8-sig") as f:
         w = csv.writer(f, delimiter=";")
         w.writerow(["Data", "Zawodnik", "Drużyna", "Rywal", "P(gol)", "Gole", "P(asysta)", "Asysty",
-                    "P(punkt)", "Punkty", "Oczek. strzały", "Strzały"])
-        w.writerows(detail)
+                    "P(punkt)", "Punkty", "Oczek. strzały (surowe)", "P(3+ SOG)", "Strzały"])
+        for i in range(n):
+            w.writerow([D["date"][i], *names[i],
+                        round(P["Gol 1+"][0][i], 4), int(D["g"][i]), round(P["Asysta 1+"][0][i], 4), int(D["a"][i]),
+                        round(P["Punkt 1+"][0][i], 4), int(D["p"][i]), round(D["lam_s"][i], 3),
+                        round(P["Strzały 3+"][0][i], 4), int(D["s"][i])])
     print(f"\nSzczegóły zapisane: {path}")
     print("Poprawa = o ile model jest lepszy od zgadywania średniej ligowej (Brier skill). >0% = model wnosi wartość.")
+
+
+def evaluate(D, cal, title, detail_buckets=True):
+    import numpy as np
+    P = calib.probs(D, cal)
+    print(f"\n=== {title} ===")
+    print(f"{'Rynek':<12}{'N':>8}{'Śr. prognoza':>14}{'Wynik real.':>13}{'Brier':>9}{'Brier bazowy':>14}{'Poprawa':>9}")
+    for label, (p, y) in P.items():
+        n = len(p)
+        rate = y.mean()
+        brier = float(np.mean((p - y) ** 2))
+        basev = float(np.mean((rate - y) ** 2))
+        skill = 1 - brier / basev if basev else 0
+        print(f"{label:<12}{n:>8}{p.mean()*100:>13.1f}%{rate*100:>12.1f}%{brier:>9.4f}{basev:>14.4f}{skill*100:>8.1f}%")
+    if not detail_buckets:
+        return
+    print("\nKalibracja (prognoza → faktycznie):")
+    edges = [0, .1, .2, .3, .4, .5, .6, .7, .8, 1.01]
+    for label, (p, y) in P.items():
+        parts = []
+        for lo, hi in zip(edges[:-1], edges[1:]):
+            m = (p >= lo) & (p < hi)
+            if m.sum() < 30:
+                continue
+            parts.append(f"{p[m].mean()*100:4.0f}→{y[m].mean()*100:4.0f}%")
+        print(f"  {label:<11} " + "  ".join(parts))
 
 
 def report_streaks(recs):
@@ -699,7 +745,8 @@ def main(argv=None):
     ap.add_argument("--cache", default="cache", help="folder na pobrane dane")
     ap.add_argument("--workers", type=int, default=6, help="równoległe pobieranie (domyślnie 6)")
     ap.add_argument("--no-open", action="store_true", help="nie otwieraj raportu w przeglądarce")
-    ap.add_argument("--no-elc", action="store_true", help="pomiń stronę bonusów ELC")
+    ap.add_argument("--no-calib", action="store_true", help="nie używaj calibration.json (surowy model)")
+    ap.add_argument("--no-elc",action="store_true", help="pomiń stronę bonusów ELC")
     ap.add_argument("--site",help="zapisz jako stronę GitHub Pages do podanego folderu (np. docs)")
     a = ap.parse_args(argv)
 
@@ -707,11 +754,16 @@ def main(argv=None):
     out_dir = (base / a.out) if not Path(a.out).is_absolute() else Path(a.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     http = Http((base / a.cache) if not Path(a.cache).is_absolute() else Path(a.cache))
+    global CALIB
+    CALIB = None if a.no_calib else calib.load(base)
+    if CALIB:
+        info = CALIB.get("_info", {})
+        print(f"Kalibracja z backtestu {info.get('od','?')} → {info.get('do','?')} (n={info.get('n','?')})")
 
     if a.backtest:
         s, e = (dt.date.fromisoformat(x) for x in a.backtest)
         print(f"Backtest {s} → {e} (pierwsze uruchomienie pobiera dużo danych, potem działa z cache)")
-        backtest(http, s, e, a.workers, out_dir)
+        backtest(http, s, e, a.workers, out_dir, base)
         return
 
     day = dt.date.fromisoformat(a.date) if a.date else dt.datetime.now(TZ_PL).date()

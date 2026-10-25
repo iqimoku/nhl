@@ -68,10 +68,16 @@ td{font-variant-numeric:tabular-nums}
   background:#fff1d6;color:#8a4b00;border:1px solid #f3c56b}
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .chase{background:#3a2a10;color:#ffcf7a;border-color:#6b4b14} }
 :root[data-theme="dark"] .chase{background:#3a2a10;color:#ffcf7a;border-color:#6b4b14}
+.dwarn{flex-basis:100%;font-size:12.5px;padding:8px 12px;border-radius:8px;background:var(--warn-soft);color:var(--warn)}
 .tog{font:inherit;font-size:11px;font-weight:600;margin-left:8px;padding:2px 7px;border-radius:6px;cursor:pointer;
   border:1px solid var(--line);background:var(--panel);color:var(--accent)}
 .tog.on{background:var(--accent-soft);border-color:var(--accent)}
-tr.detail>td{background:var(--bg);padding:12px 14px;text-align:left;white-space:normal}
+tr.detail>td{background:var(--bg);padding:0;text-align:left;white-space:normal}
+.dwrap{position:sticky;left:0;width:var(--dw,100%);padding:12px 14px;box-sizing:border-box}
+.dwrap .full{margin-top:16px}
+.dwrap .full table.mini{width:100%}
+.dwrap .full table.mini th,.dwrap .full table.mini td{padding:4px 6px;font-size:11.5px}
+.mscroll{overflow-x:auto;max-width:100%}
 tr.detail:hover{background:none}
 .dgrid{display:flex;flex-wrap:wrap;gap:16px}
 .dbox{flex:1 1 360px;min-width:0}
@@ -125,6 +131,22 @@ table.mini tr.sum + tr.sum td{border-top:1px solid var(--line)}
     <select id="pos"><option value="">Wszyscy</option><option value="F">Napastnicy</option><option value="D">Obrońcy</option></select>
     <label>min. <input type="range" id="min" min="0" max="80" step="5" value="0"> <span id="minv">0%</span></label>
     <label><input type="checkbox" id="hide" checked> ukryj niegrających ostatnio</label>
+    <label>Susza:
+      <select id="drought">
+        <option value="">wszyscy</option>
+        <option value="month">bieżący miesiąc 0 G i 0 A (podgląd)</option>
+        <option value="mg">bieżący miesiąc 0 G (podgląd)</option>
+        <option value="ma">bieżący miesiąc 0 A (podgląd)</option>
+        <option value="ga">seria bez G lub bez A ≥ N (backtest: brak efektu)</option>
+        <option value="g">seria bez G ≥ N (backtest: brak efektu)</option>
+        <option value="a">seria bez A ≥ N (podgląd)</option>
+        <option value="p">seria bez punktu ≥ N (backtest: 13+ m. = gorzej!)</option>
+        <option value="luck">pech na strzałach ≤ −1,5 G (już w modelu)</option>
+      </select>
+      <span id="dnw" hidden>N = <input type="number" id="dn" min="1" max="40" value="5" style="width:56px"></span>
+      <span id="dcnt" class="match"></span>
+    </label>
+    <div id="dwarn" class="dwarn" hidden></div>
     <label id="chasel" hidden><input type="checkbox" id="chase"> tylko goniący bonus ELC 🎯 <span id="chasen"></span></label>
   </div>
 
@@ -137,8 +159,10 @@ table.mini tr.sum + tr.sum td{border-top:1px solid var(--line)}
       <li><b>Oczek.</b> – oczekiwana liczba zdarzeń. <b>Na 60</b> – tempo zawodnika na 60 min gry po wygładzeniu (sezony: <span id="seas"></span>).</li>
       <li><b>TOI</b> – oczekiwany czas na lodzie (60% ostatnie 10 meczów, 40% średnia ważona).</li>
       <li><b>Rywal ×</b> – obrona rywala vs średnia ligi (1,10 = traci o 10% więcej). <b>Forma 10 / H2H</b> – np. „6 G · 6 m · gol w 3” = 6 goli w 6 meczach, gol padł w 3 z nich (przy strzałach: średnia na mecz i w ilu meczach było 3+). <b>Dom / wyjazd</b> – ten sam H2H rozbity na mecze u siebie (🏠) i na wyjeździe (✈); pogrubiony jest wariant zgodny z dzisiejszym meczem. <b>H2H</b> obejmuje wszystkie mecze zawodnika przeciw temu rywalowi od sezonu <span id="h2hfrom"></span> (bieżący + 5 poprzednich, sezon zasadniczy). <b>H2H ×</b> – wynikająca z tego korekta (ograniczona do 0,80–1,25, bo próba jest mała).</li>
+      <li><b>Kalibracja</b> – procenty są poprawione na podstawie backtestu (plik calibration.json), tak aby prognoza 30% sprawdzała się w ok. 30% przypadków. Strzały liczone są rozkładem o większym rozrzucie niż Poisson (ujemny dwumianowy), bo liczba strzałów waha się bardziej, niż zakłada Poisson – stąd niższe, uczciwsze szanse na 3+ i 4+. Informacja o kalibracji jest w nagłówku strony.</li>
       <li><b>Gole w modelu</b> liczone są w 70% jako strzały na 60 min × skuteczność z kariery, w 30% z samych goli. Dzięki temu zawodnik, który strzela dużo, a ostatnio „nie wpada”, dostaje uczciwie wyższą szansę.</li>
       <li><b>Pech/fart</b> (zakładka Gole) – gole w ostatnich 15 meczach minus gole oczekiwane z jego strzałów. Ujemny = pech (strzela, nie wpada), dodatni = fart. <b>Seria bez …</b> – ile meczów z rzędu bez zdarzenia (w nawiasie rekord w dostępnej historii); pogrubiona, gdy zbliża się do rekordu. Serie to podgląd – <u>nie</u> zmieniają procentów; czy warto je grać, sprawdza backtest.</li>
+      <li><b>Susza</b> (filtr) – pokazuje tylko zawodników w bieżącym miesiącu bez gola / asysty (min. 3 mecze w miesiącu), z serią ≥ N meczów bez G, A lub punktu, albo z pechem na strzałach. Przy nazwisku pojawia się wtedy podsumowanie, np. „październik: 0–0 w 6 m · bez G 6 m”.</li>
       <li><b>Miesiące w karierze</b> (w rozwiniętej linii) – G–A w każdym miesiącu każdego sezonu; na czerwono miesiące 0–0, podświetlony bieżący miesiąc.</li>
       <li><b>ELC</b> – młody zawodnik prawdopodobnie na kontrakcie wejściowym (szczegóły na stronie „Bonusy ELC”). <b>🎯 ELC: brakuje 3 G do 20</b> – w końcówce sezonu (≤ 30 meczów drużyny do końca) zawodnik ma realną szansę dobić do progu bonusu „A” i może dostać więcej okazji. Najedź na znaczek, żeby zobaczyć szansę na osiągnięcie progu.</li>
       <li>Status „nie grał w N ost. meczach” zwykle oznacza kontuzję lub odsunięcie – model nie zna aktualnych składów ani bramkarza rywala, sprawdź je przed meczem.</li>
@@ -181,7 +205,8 @@ if(M.root !== null && M.root !== undefined){
   }).catch(() => {});
 }
 
-$("#sub").textContent = `Mecze z dnia ${M.date} · ${M.games.length} spotkań · wygenerowano ${M.generated}`;
+$("#sub").textContent = `Mecze z dnia ${M.date} · ${M.games.length} spotkań · wygenerowano ${M.generated}`
+  + (M.calib ? ` · skalibrowany (backtest ${M.calib.od} → ${M.calib.do}, n=${Number(M.calib.n).toLocaleString("pl-PL")})` : " · bez kalibracji");
 $("#h2hfrom").textContent = M.h2h_from || "";
 $("#seas").textContent =M.seasons.map((s,i)=>`${s} ×${n2(M.weights[i])}`).join(", ");
 
@@ -219,12 +244,31 @@ if(R.some(r => r.elc)){
   $("#chasen").textContent = `(${R.filter(isChasing).length})`;
 }
 $("#chase").onchange = e => { st.chase = e.target.checked; render(); };
+st.drought = ""; st.dn = 5;
+$("#drought").onchange = e => {
+  st.drought = e.target.value;
+  $("#dnw").hidden = !["g","a","ga","p"].includes(st.drought);
+  render();
+};
+const DWARN = {
+  ga: "Backtest (4 sezony, 158 tys. występów): po serii bez gola zawodnik trafia tak samo często, jak przewiduje model – seria sama w sobie nie daje przewagi. Procenty w tabeli są już uczciwe; to lista do ręcznej analizy (minuty, przewagi, linia).",
+  g:  "Backtest: po 3, 5, 8 czy 13+ meczach bez gola wskaźnik ≈ 1,00 – brak efektu „należy mu się”. Procenty w tabeli są już uczciwe.",
+  p:  "Uwaga – backtest: zawodnicy z serią 13+ meczów bez punktu punktowali RZADZIEJ niż przewidywał model (wskaźnik 0,91). Długa susza zwykle oznacza utratę roli – to sygnał ostrzegawczy, nie okazja.",
+  luck: "Backtest: po uwzględnieniu goli ze strzałów „pechowcy” trafiają tak, jak przewiduje model – ich pech jest już w procentach.",
+};
+const _dsel = $("#drought").onchange;
+$("#drought").onchange = e => {
+  const w = DWARN[e.target.value];
+  $("#dwarn").hidden = !w; $("#dwarn").textContent = w || "";
+  _dsel(e);
+};
+$("#dn").oninput =e => { st.dn = Math.max(1, +e.target.value || 1); render(); };
 
 const LBL = {g:"G", a:"A", p:"PKT", s:"SOG"};
 function cols(){
   const m = st.m, L = LBL[m];
   const base = [
-    {k:"name", t:"Zawodnik", l:true, v:r=>r.name, h:r=>`<span class="name">${esc(r.name)}</span><span class="pos">${esc(r.pos)}${r.num?" #"+r.num:""}</span><button class="tog ${OPEN.has(r.id)?"on":""}" data-id="${r.id}">H2H ${OPEN.has(r.id)?"▾":"▸"}</button>${elcBadge(r)}${r.inactive?`<span class="badge">${esc(r.status)}</span>`:""}`},
+    {k:"name", t:"Zawodnik", l:true, v:r=>r.name, h:r=>`<span class="name">${esc(r.name)}</span><span class="pos">${esc(r.pos)}${r.num?" #"+r.num:""}</span><button class="tog ${OPEN.has(r.id)?"on":""}" data-id="${r.id}">H2H ${OPEN.has(r.id)?"▾":"▸"}</button>${elcBadge(r)}${droughtNote(r)}${r.inactive?`<span class="badge">${esc(r.status)}</span>`:""}`},
     {k:"match", t:"Mecz", l:true, v:r=>r.game, h:r=>`<b>${esc(r.team)}</b> <span class="match">${r.home?"vs":"@"} ${esc(r.opp)} · ${esc(r.time)}</span>`},
   ];
   const probCell = p => `<div class="prob"><span class="bar"><i style="width:${Math.min(100,p*100)}%"></i></span><b>${pc(p)}</b></div>`;
@@ -291,9 +335,11 @@ function render(){
     (!st.pos || r.posg===st.pos) &&
     (!st.hide || !r.inactive) &&
     (!st.chase || isChasing(r)) &&
+    droughtMatch(r) &&
     (!st.q || r.name.toLowerCase().includes(st.q)) &&
     mainProb(r)*100 >= st.min);
   rows.sort((a,b)=>{ const x=sc.v(a), y=sc.v(b); return (x<y?-1:x>y?1:0)*st.dir; });
+  $("#dcnt").textContent = st.drought ? `(${rows.length})` : "";
 
   $("#t thead").innerHTML = "<tr><th class='l'>#</th>" + C.map(c =>
     `<th class="${c.l?"l":""} ${c.k===sc.k?"sorted":""}" data-k="${c.k}">${esc(c.t)}${c.k===sc.k?(st.dir<0?" ↓":" ↑"):""}</th>`).join("") + "</tr>";
@@ -305,6 +351,7 @@ function render(){
     `<tr class="${r.inactive?"inactive":""}"><td class="l">${i+1}</td>` + C.map(c=>`<td class="${c.l?"l":""}">${c.h(r)}</td>`).join("") + "</tr>"
     + (OPEN.has(r.id) ? `<tr class="detail"><td colspan="${C.length+1}">${detail(r)}</td></tr>` : "")
   ).join("") : `<tr><td colspan="${C.length+1}" class="empty">Brak zawodników dla tych filtrów.</td></tr>`;
+  setDetailWidth();
   $("#t tbody").querySelectorAll(".tog").forEach(b => b.onclick = e => {
     e.stopPropagation();
     const id = +b.dataset.id;
@@ -314,6 +361,42 @@ function render(){
 }
 
 const OPEN = new Set();
+function setDetailWidth(){
+  const sc = document.querySelector(".scroll");
+  if(sc) document.documentElement.style.setProperty("--dw", sc.clientWidth + "px");
+}
+addEventListener("resize", setDetailWidth);
+
+// ---- susza: bieżący miesiąc i serie
+const CUR_SEASON = M.seasons[0], CUR_MONTH = +M.date.slice(5,7);
+const MON_FULL = {1:"styczeń",2:"luty",3:"marzec",4:"kwiecień",5:"maj",6:"czerwiec",9:"wrzesień",10:"październik",11:"listopad",12:"grudzień"};
+function curMonth(r){
+  const x = (r.months||[]).find(m => m[0]===CUR_SEASON && m[1]===CUR_MONTH);
+  return x ? {gp:x[2], g:x[3], a:x[4]} : {gp:0, g:0, a:0};
+}
+function droughtMatch(r){
+  const mode = st.drought, n = st.dn;
+  if(!mode) return true;
+  const sk = r.streak || {};
+  if(mode==="month"){ const c = curMonth(r); return c.gp >= 3 && c.g + c.a === 0; }
+  if(mode==="mg"){ const c = curMonth(r); return c.gp >= 3 && c.g === 0; }
+  if(mode==="ma"){ const c = curMonth(r); return c.gp >= 3 && c.a === 0; }
+  if(mode==="g") return (sk.g||0) >= n;
+  if(mode==="a") return (sk.a||0) >= n;
+  if(mode==="ga") return (sk.g||0) >= n || (sk.a||0) >= n;
+  if(mode==="p") return (sk.p||0) >= n;
+  if(mode==="luck") return r.luck && r.luck.diff <= -1.5;
+  return true;
+}
+function droughtNote(r){
+  if(!st.drought) return "";
+  const c = curMonth(r), sk = r.streak || {};
+  const parts = [];
+  if(c.gp) parts.push(`${MON_FULL[CUR_MONTH]}: ${c.g}–${c.a} w ${c.gp} m`);
+  if((sk.g||0) >= 3) parts.push(`bez G ${sk.g} m`);
+  if((sk.a||0) >= 3) parts.push(`bez A ${sk.a} m`);
+  return parts.length ? `<span class="badge">${esc(parts.join(" · "))}</span>` : "";
+}
 function elcBadge(r){
   if(!r.elc) return "";
   const t = r.elc.listed ? "ELC (z listy)" : "ELC – kandydat (kontrakt nie potwierdzony)";
@@ -396,11 +479,12 @@ function monthsBox(r){
   return `<table class="mini"><thead>${head}</thead><tbody>${body}</tbody></table>${summary}`;
 }
 function detail(r){
-  return `<div class="dgrid">
-    <div class="dbox"><h4>H2H przeciw ${esc(r.opp)} <span>· od sezonu ${esc(M.h2h_from||"")}, sezon zasadniczy</span></h4>${logTable(r.h2h_log, r.home)}</div>
-    <div class="dbox"><h4>Ostatnie 10 meczów <span>· forma</span></h4>${logTable(r.f10_log)}
-      <h4 style="margin-top:14px">Miesiące w karierze <span>· G–A (mecze), wszystkie rywale</span></h4>${monthsBox(r)}</div>
-  </div>`;
+  return `<div class="dwrap"><div class="dgrid">
+    <div class="dbox"><h4>H2H przeciw ${esc(r.opp)} <span>· od sezonu ${esc(M.h2h_from||"")}, sezon zasadniczy</span></h4><div class="mscroll">${logTable(r.h2h_log, r.home)}</div></div>
+    <div class="dbox"><h4>Ostatnie 10 meczów <span>· forma</span></h4><div class="mscroll">${logTable(r.f10_log)}</div>
+      <div class="full"><h4>Miesiące w karierze <span>· G–A (mecze), wszystkie rywale</span></h4><div class="mscroll">${monthsBox(r)}</div></div>
+    </div>
+  </div></div>`;
 }
 render();
 </script>
