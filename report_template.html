@@ -72,6 +72,34 @@ td{font-variant-numeric:tabular-nums}
 .tbadge.tdown{color:var(--bad);border-color:var(--bad)}
 .tbadge.tup{color:var(--good);border-color:var(--good)}
 .tbadge.tflat{color:var(--muted)}
+.info-top{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--muted);margin-bottom:12px}
+.info-top b{color:var(--ink)}
+.gsel{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+h3.sec{font-size:16px;margin:20px 0 10px}
+h3.sec .match{font-size:12px;font-weight:400}
+.picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px}
+.pick{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.pick-h{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.pick-p{text-align:right}
+.pick-p b{font-size:20px}
+.pick-p .mk{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.03em}
+ul.why{margin:8px 0 0;padding-left:18px;font-size:12.5px}
+ul.why li{margin:2px 0}
+ul.why.plus li::marker{content:"✓ ";color:var(--good)}
+ul.why.minus li{color:var(--bad)}
+ul.why.minus li::marker{content:"! ";color:var(--bad)}
+.pick-odds{margin-top:10px;padding-top:8px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.pick-odds input{width:78px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
+.ev-good{color:var(--good);font-weight:700}.ev-flat{color:var(--muted);font-weight:600}.ev-bad{color:var(--bad);font-weight:600}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.tbox{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.tbox h4{margin:0 0 6px;font-size:13px}
+.trow{display:flex;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid var(--line);font-size:13px}
+.trow:last-child{border-bottom:0}
+.trow .ti{color:var(--muted);width:16px;flex:none}
+.trow .tn{flex:1;min-width:0}
+.trow .tn small{display:block;color:var(--muted);font-size:11px}
+.trow b{flex:none}
 .dwarn{flex-basis:100%;font-size:12.5px;padding:8px 12px;border-radius:8px;background:var(--warn-soft);color:var(--warn)}
 .tog{font:inherit;font-size:11px;font-weight:600;margin-left:8px;padding:2px 7px;border-radius:6px;cursor:pointer;
   border:1px solid var(--line);background:var(--panel);color:var(--accent)}
@@ -127,7 +155,10 @@ table.mini tr.sum + tr.sum td{border-top:1px solid var(--line)}
     <button class="tab" data-m="a">Asysty</button>
     <button class="tab" data-m="p">Punkty (G+A)</button>
     <button class="tab" data-m="s">Strzały</button>
+    <button class="tab" data-m="top">⭐ Typy dnia</button>
   </div>
+
+  <div id="top" hidden></div>
 
   <div class="controls">
     <input type="search" id="q" placeholder="Szukaj zawodnika…">
@@ -174,7 +205,7 @@ table.mini tr.sum + tr.sum td{border-top:1px solid var(--line)}
     <label id="chasel" hidden><input type="checkbox" id="chase"> tylko goniący bonus ELC 🎯 <span id="chasen"></span></label>
   </div>
 
-  <div class="card"><div class="scroll"><table id="t"><thead></thead><tbody></tbody></table></div></div>
+  <div class="card" id="maincard"><div class="scroll"><table id="t"><thead></thead><tbody></tbody></table></div></div>
 
   <div class="notes">
     <h3>Jak czytać</h3>
@@ -369,6 +400,11 @@ function cols(){
 function mainProb(r){ return st.m==="s" ? r.m.s.p3 : r.m[st.m].p1; }
 
 function render(){
+  const isTop = st.m === "top";
+  $("#top").hidden = !isTop;
+  document.querySelector(".controls").hidden = isTop;
+  $("#maincard").hidden = isTop;
+  if(isTop){ renderTop(); return; }
   const C = cols();
   if(!st.sort) st.sort = C.find(c=>c.main).k;
   const sc = C.find(c=>c.k===st.sort) || C.find(c=>c.main);
@@ -577,6 +613,137 @@ function detail(r){
     </div>
   </div></div>`;
 }
+// ======================= ⭐ TYPY DNIA =======================
+// Rynek -> jak liczyć szansę i próg „interesującej” szansy
+const TOP_MK = {
+  g: {name:"Gol",        p:r=>r.m.g.p1, min:0.25, odds:"anytime goal"},
+  a: {name:"Asysta",     p:r=>r.m.a.p1, min:0.30, odds:"1+ asysta"},
+  p: {name:"Punkt",      p:r=>r.m.p.p1, min:0.50, odds:"1+ punkt"},
+  s: {name:"3+ strzały", p:r=>r.m.s.p3, min:0.50, odds:"3+ SOG (over 2,5)"},
+};
+function reasons(r, k){
+  const plus = [], minus = [];
+  const t = toiTrend(r), sk = r.streak || {}, f = r.f10 || {};
+  const of = r.m[k].opp_f, hf = r.m[k].h2h_f;
+  // ---- za
+  if(r.toi >= 17) plus.push(`czołowa rola – TOI ${n2(r.toi,1)} min`);
+  if(t && t.diff >= 1.5) plus.push(`rosnące minuty (+${n2(t.diff,1)} min w 5 ost. m.)`);
+  if(of >= 1.05) plus.push(`słaba obrona rywala (×${n2(of)})`);
+  if(hf >= 1.10 && (r.h2h||{}).gp >= 4) plus.push(`dobra historia z ${r.opp} (×${n2(hf)}, ${r.h2h.gp} m.)`);
+  const hitKey = k === "s" ? "hs" : "h" + k;
+  if(f.gp >= 8 && (f[hitKey]||0) >= (k==="g"?4:k==="a"?5:k==="p"?7:7))
+    plus.push(`forma: ${k==="s"?"3+ SOG":TOP_MK[k].name.toLowerCase()} w ${f[hitKey]} z ${f.gp} ost. m.`);
+  if(k === "g" && r.luck && r.luck.diff <= -1.5) plus.push(`pech na strzałach (${n2(r.luck.diff,1)} G vs oczek.) – już w %`);
+  if(isChasing(r)) plus.push("goni bonus ELC 🎯");
+  if(r.home) plus.push("u siebie");
+  // ---- uwaga
+  if(r.inactive) minus.push(r.status);
+  if(t && t.diff <= -1.5) minus.push(`obcięte minuty (${n2(t.diff,1)} min) – możliwa utrata roli`);
+  if((sk.p||0) >= 13) minus.push(`${sk.p} m. bez punktu (backtest: tacy punktują rzadziej)`);
+  if(r.gp < 15) minus.push(`mała próba (${r.gp} m. w danych)`);
+  if(of <= 0.92) minus.push(`mocna obrona rywala (×${n2(of)})`);
+  if(hf <= 0.85 && (r.h2h||{}).gp >= 5) minus.push(`słaba historia z ${r.opp} (×${n2(hf)})`);
+  return {plus, minus, score: plus.filter(x => x !== "u siebie").length};
+}
+
+// kursy wpisane przez użytkownika – pamiętane w tej przeglądarce
+const oddsKey = (id, k) => `nhl-odds|${M.date}|${id}|${k}`;
+function getOdds(id, k){ try{ const v = localStorage.getItem(oddsKey(id,k)); return v ? +v : null; }catch(e){ return null; } }
+function setOdds(id, k, v){ try{ v ? localStorage.setItem(oddsKey(id,k), v) : localStorage.removeItem(oddsKey(id,k)); }catch(e){} }
+function evHtml(p, odds){
+  if(!odds || odds <= 1) return `<span class="match">wpisz kurs</span>`;
+  const ev = p * odds - 1;
+  const cls = ev >= 0.05 ? "ev-good" : ev >= 0 ? "ev-flat" : "ev-bad";
+  const lab = ev >= 0.05 ? "VALUE" : ev >= 0 ? "na styk" : "bez wartości";
+  // Kelly ćwiartkowy jako orientacyjna wielkość stawki (% banku)
+  const kelly = Math.max(0, (p * odds - 1) / (odds - 1)) / 4;
+  return `<span class="${cls}">EV ${ev>=0?"+":""}${(ev*100).toFixed(1).replace(".",",")}% · ${lab}</span>`
+    + (ev >= 0.05 ? ` <span class="match" title="1/4 Kelly – orientacyjnie, max">stawka ≤ ${(kelly*100).toFixed(1).replace(".",",")}% banku</span>` : "");
+}
+function pickCard(r, k, why){
+  const mk = TOP_MK[k], p = mk.p(r), o = getOdds(r.id, k);
+  return `<div class="pick">
+    <div class="pick-h">
+      <div><span class="name">${esc(r.name)}</span><span class="pos"> ${esc(r.pos)}</span>
+        <div class="match"><b>${esc(r.team)}</b> ${r.home?"vs":"@"} ${esc(r.opp)} · ${esc(r.time)}</div></div>
+      <div class="pick-p"><div class="mk">${mk.name}</div><b>${pc(p)}</b><div class="match">kurs fair ${fair(p)}</div></div>
+    </div>
+    ${why.plus.length ? `<ul class="why plus">${why.plus.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+    ${why.minus.length ? `<ul class="why minus">${why.minus.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+    <div class="pick-odds">Kurs bukmachera (${mk.odds}):
+      <input type="number" step="0.01" min="1.01" class="oddin" data-id="${r.id}" data-k="${k}" value="${o||""}" placeholder="kurs">
+      <span class="evout" data-id="${r.id}" data-k="${k}">${evHtml(p, o)}</span>
+    </div>
+  </div>`;
+}
+
+function renderTop(){
+  const pool = R.filter(r => !st.game || String(r.gameId) === st.game);
+  const active = pool.filter(r => !r.inactive);
+  // 1) Na warsztat: najlepszy rynek zawodnika, min. 2 argumenty „za”, zero czerwonych flag, szansa ≥ progu
+  const cand = [];
+  active.forEach(r => {
+    let best = null;
+    for(const k of ["g","a","p","s"]){
+      const p = TOP_MK[k].p(r);
+      if(p < TOP_MK[k].min) continue;
+      const w = reasons(r, k);
+      if(w.minus.length || w.score < 2) continue;
+      const sc = w.score + p / TOP_MK[k].min;       // argumenty + jak wysoko ponad próg
+      if(!best || sc > best.sc) best = {r, k, w, sc};
+    }
+    if(best) cand.push(best);
+  });
+  cand.sort((a, b) => b.sc - a.sc);
+  const warsztat = cand.slice(0, 10);
+
+  // 2) Najwyższe szanse w każdym rynku (aktywni, bez czerwonych flag minut)
+  const tops = Object.keys(TOP_MK).map(k => {
+    const list = active.filter(r => { const t = toiTrend(r); return !(t && t.diff <= -1.5); })
+      .sort((a, b) => TOP_MK[k].p(b) - TOP_MK[k].p(a)).slice(0, 5);
+    return `<div class="tbox"><h4>${TOP_MK[k].name}</h4>${list.map((r, i) =>
+      `<div class="trow"><span class="ti">${i+1}.</span><span class="tn">${esc(r.name)}<small>${esc(r.team)} ${r.home?"vs":"@"} ${esc(r.opp)} · fair ${fair(TOP_MK[k].p(r))}</small></span><b>${pc(TOP_MK[k].p(r))}</b></div>`).join("")}</div>`;
+  }).join("");
+
+  // 3) Uważaj: zawodnicy z wysokimi szansami, ale z czerwoną flagą
+  const warn = [];
+  pool.forEach(r => {
+    for(const k of ["g","p"]){
+      const p = TOP_MK[k].p(r);
+      if(p < TOP_MK[k].min * 1.1) continue;
+      const w = reasons(r, k);
+      if(w.minus.length){ warn.push({r, k, w, p}); break; }
+    }
+  });
+  warn.sort((a, b) => b.p - a.p);
+
+  $("#top").innerHTML = `
+    <div class="info-top">
+      <b>Jak z tego korzystać.</b> To lista <u>kandydatów do analizy</u>, nie pewniaki. Model zna szanse, ale nie kursy –
+      wartość (value) jest tylko wtedy, gdy kurs bukmachera jest wyższy od kursu fair. Wpisz kurs przy typie, a strona policzy EV.
+      Przed zakładem sprawdź: skład i linie na dziś, bramkarza rywala, czy gra w 1. przewadze.
+      ${M.calib ? "" : `<br><span class="ev-bad">Model bez kalibracji – szanse na 3+ strzały i najwyższe szanse na gola są zawyżone. Uruchom Backtest NHL.</span>`}
+    </div>
+
+    <h3 class="sec">🔧 Na warsztat <span class="match">– wysoka szansa + min. 2 argumenty za + brak czerwonych flag (najlepszy rynek dla zawodnika)</span></h3>
+    ${warsztat.length ? `<div class="picks">${warsztat.map(c => pickCard(c.r, c.k, c.w)).join("")}</div>`
+      : `<p class="match">Dziś brak kandydatów spełniających wszystkie warunki.</p>`}
+
+    <h3 class="sec">📈 Najwyższe szanse wg rynku</h3>
+    <div class="tgrid">${tops}</div>
+
+    <h3 class="sec">⚠️ Uważaj <span class="match">– wysoka szansa w modelu, ale są powody do ostrożności</span></h3>
+    ${warn.length ? `<div class="picks">${warn.slice(0, 6).map(c => pickCard(c.r, c.k, c.w)).join("")}</div>`
+      : `<p class="match">Brak.</p>`}
+  `;
+  $("#top").querySelectorAll(".oddin").forEach(inp => inp.oninput = () => {
+    const id = +inp.dataset.id, k = inp.dataset.k, v = +String(inp.value).replace(",", ".");
+    setOdds(id, k, v > 1 ? v : null);
+    const r = R.find(x => x.id === id);
+    $("#top").querySelectorAll(`.evout[data-id="${id}"][data-k="${k}"]`).forEach(o => o.innerHTML = evHtml(TOP_MK[k].p(r), v > 1 ? v : null));
+  });
+}
+
 render();
 </script>
 </body>
