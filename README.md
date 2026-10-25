@@ -115,7 +115,24 @@ Szansa na co najmniej jedno zdarzenie wynosi P(≥1) = 1 − e^(−λ).
 
 Wszystkie parametry są na górze pliku `nhl_model.py` (sekcja „parametry modelu”), więc możesz je zmieniać.
 
+## Serie, miesiące i pech/fart
+
+- **Gole liczone ze strzałów.** Model liczy tempo goli w 70% jako strzały na 60 min × skuteczność z kariery (wygładzoną), a w 30% z samych goli. Zawodnik w „suszy”, który nadal dużo strzela, dostaje przez to uczciwie wyższą szansę.
+- **Pech/fart** (zakładka Gole): gole z ostatnich 15 meczów minus gole oczekiwane z liczby strzałów.
+- **Seria bez G / A / PKT** razem z rekordem z dostępnej historii.
+- **Miesiące w karierze** (w rozwiniętej linii zawodnika): G–A w każdym miesiącu każdego sezonu. Miesiące 0–0 są zaznaczone na czerwono.
+
+Serie i miesiące są tylko **podglądem** i nie zmieniają procentów. Czy na „przełamanie serii” warto grać, rozstrzyga backtest (niżej): pokazuje, czy zawodnicy po serii zer trafiają częściej, niż przewidział model.
+
 ## Sprawdź, czy model trafia (backtest)
+
+**Najprościej na GitHubie:** wejdź w **Actions**, wybierz **Backtest NHL** i kliknij **Run workflow**. Wpisz zakres dat, np. 2025-11-01 → 2026-04-15. Pierwszy przebieg na pełnym sezonie trwa 1–3 godziny, bo pobiera historię kilkuset zawodników z 6 sezonów. Wyniki pojawią się na stronie przebiegu (w Summary), a pliki do pobrania w sekcji „Artifacts”.
+
+W tabeli „SERIE I PECH” najważniejsza jest kolumna **Wskaźnik**, czyli stosunek wyniku faktycznego do prognozy modelu:
+- jeśli 1,00 mieści się w przedziale „±”, seria nic nie dodaje do tego, co model już wie,
+- jeśli wskaźnik jest wyraźnie powyżej 1 przy dużym N (np. 1,15 ± 0,08), warto dodać do modelu korektę za serię.
+
+**Lokalnie:**
 
 ```
 python nhl_model.py --backtest 2025-11-01 2026-03-31

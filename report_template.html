@@ -81,6 +81,8 @@ table.mini{min-width:0;width:100%;background:var(--panel);border:1px solid var(-
 table.mini th,table.mini td{padding:4px 8px;font-size:12px;position:static}
 table.mini tr:last-child td{border-bottom:0}
 table.mini td.hit{font-weight:700;color:var(--good)}
+table.mini td.zero{color:var(--bad);font-weight:700}
+table.mini tr.curm td{background:var(--accent-soft)}
 table.mini tr.sum td{font-weight:700;background:var(--accent-soft)}
 table.mini tr.sum.vt td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
 table.mini tr.sum + tr.sum td{border-top:1px solid var(--line)}
@@ -135,6 +137,9 @@ table.mini tr.sum + tr.sum td{border-top:1px solid var(--line)}
       <li><b>Oczek.</b> – oczekiwana liczba zdarzeń. <b>Na 60</b> – tempo zawodnika na 60 min gry po wygładzeniu (sezony: <span id="seas"></span>).</li>
       <li><b>TOI</b> – oczekiwany czas na lodzie (60% ostatnie 10 meczów, 40% średnia ważona).</li>
       <li><b>Rywal ×</b> – obrona rywala vs średnia ligi (1,10 = traci o 10% więcej). <b>Forma 10 / H2H</b> – np. „6 G · 6 m · gol w 3” = 6 goli w 6 meczach, gol padł w 3 z nich (przy strzałach: średnia na mecz i w ilu meczach było 3+). <b>Dom / wyjazd</b> – ten sam H2H rozbity na mecze u siebie (🏠) i na wyjeździe (✈); pogrubiony jest wariant zgodny z dzisiejszym meczem. <b>H2H</b> obejmuje wszystkie mecze zawodnika przeciw temu rywalowi od sezonu <span id="h2hfrom"></span> (bieżący + 5 poprzednich, sezon zasadniczy). <b>H2H ×</b> – wynikająca z tego korekta (ograniczona do 0,80–1,25, bo próba jest mała).</li>
+      <li><b>Gole w modelu</b> liczone są w 70% jako strzały na 60 min × skuteczność z kariery, w 30% z samych goli. Dzięki temu zawodnik, który strzela dużo, a ostatnio „nie wpada”, dostaje uczciwie wyższą szansę.</li>
+      <li><b>Pech/fart</b> (zakładka Gole) – gole w ostatnich 15 meczach minus gole oczekiwane z jego strzałów. Ujemny = pech (strzela, nie wpada), dodatni = fart. <b>Seria bez …</b> – ile meczów z rzędu bez zdarzenia (w nawiasie rekord w dostępnej historii); pogrubiona, gdy zbliża się do rekordu. Serie to podgląd – <u>nie</u> zmieniają procentów; czy warto je grać, sprawdza backtest.</li>
+      <li><b>Miesiące w karierze</b> (w rozwiniętej linii) – G–A w każdym miesiącu każdego sezonu; na czerwono miesiące 0–0, podświetlony bieżący miesiąc.</li>
       <li><b>ELC</b> – młody zawodnik prawdopodobnie na kontrakcie wejściowym (szczegóły na stronie „Bonusy ELC”). <b>🎯 ELC: brakuje 3 G do 20</b> – w końcówce sezonu (≤ 30 meczów drużyny do końca) zawodnik ma realną szansę dobić do progu bonusu „A” i może dostać więcej okazji. Najedź na znaczek, żeby zobaczyć szansę na osiągnięcie progu.</li>
       <li>Status „nie grał w N ost. meczach” zwykle oznacza kontuzję lub odsunięcie – model nie zna aktualnych składów ani bramkarza rywala, sprawdź je przed meczem.</li>
     </ul>
@@ -244,6 +249,18 @@ function cols(){
           : `<span class="${today?"vtoday":"match"}">${lab} ${m==="s" ? n2(f.s/f.gp,1)+"/m" : f[m]+" "+L} · ${f.gp} m</span>`;
         return one(fh, "🏠", r.home) + "<br>" + one(fa, "✈", !r.home);
       }},
+    {k:"streak", t: m==="s" ? "Seria <3 SOG" : `Seria bez ${L}`, v:r=>r.streak ? r.streak[m] : -1, h:r=>{
+      if(!r.streak) return "–";
+      const cur = r.streak[m], mx = r.streak[m+"_max"];
+      const hot = mx && cur >= Math.max(3, mx*0.6);
+      return `<span class="${hot?"vtoday":""}">${cur} m</span>${mx!=null?` <span class="match">(rekord ${mx})</span>`:""}`;
+    }},
+    ...(m==="g" ? [{k:"luck", t:`Pech/fart (${(R[0]&&R[0].luck)?R[0].luck.n:15} m)`, v:r=>r.luck ? r.luck.diff : 0, h:r=>{
+      if(!r.luck || !r.luck.n) return "–";
+      const d = r.luck.diff, cls = d <= -1.5 ? "down" : d >= 1.5 ? "up" : "";
+      const lab = d <= -1.5 ? "pech" : d >= 1.5 ? "fart" : "";
+      return `<span class="adj ${cls}" title="${r.luck.g} G z ${r.luck.s} strzałów; oczekiwane ${n2(r.luck.xg)} (skuteczność kariery ${pc(r.sh)})">${d>0?"+":""}${n2(d,1)}</span> <span class="match">${lab}</span>`;
+    }}] : []),
     {k:"opp", t:"Rywal ×", v:r=>r.m[m].opp_f, h:r=>adj(r.m[m].opp_f)},
     {k:"h2hf", t:"H2H ×", v:r=>r.m[m].h2h_f, h:r=>adj(r.m[m].h2h_f)},
     {k:"gp", t:"Mecze", v:r=>r.gp, h:r=>r.gp},
@@ -345,10 +362,44 @@ function logTable(log, todayHome){
   return `<table class="mini"><thead><tr><th class="l">Data</th><th class="l">Sezon</th><th class="l">Mecz</th>`
     + `<th>G</th><th>A</th><th>PKT</th><th>SOG</th><th>TOI</th></tr></thead><tbody>${body}${sum}${split}</tbody></table>`;
 }
+const MON = {10:"Paźdz.",11:"Listop.",12:"Grudz.",1:"Stycz.",2:"Luty",3:"Marzec",4:"Kwiec."};
+const MON_ORDER = [10,11,12,1,2,3,4];
+function monthsBox(r){
+  const ms = r.months || [];
+  if(!ms.length) return `<p class="match">Brak danych.</p>`;
+  const seasons = [...new Set(ms.map(x=>x[0]))].sort().reverse();
+  const cell = {}; ms.forEach(([s,mo,gp,g,a]) => cell[s+"|"+mo] = [gp,g,a]);
+  const nowMo = +M.date.slice(5,7);
+  const head = `<tr><th class="l">Miesiąc</th>${seasons.map(s=>`<th>${esc(s)}</th>`).join("")}<th>Razem</th></tr>`;
+  let zeroCnt = 0, eligible = 0;
+  const body = MON_ORDER.map(mo => {
+    let tg=0, ta=0, tgp=0;
+    const tds = seasons.map(s => {
+      const c = cell[s+"|"+mo];
+      if(!c) return `<td class="match">–</td>`;
+      const [gp,g,a] = c; tg+=g; ta+=a; tgp+=gp;
+      const zero = g+a===0 && gp>=3;
+      if(gp>=3){ eligible++; if(zero) zeroCnt++; }
+      return `<td class="${zero?"zero":(g+a)/gp>=0.8?"hit":""}" title="${gp} meczów">${g}–${a} <span class="match">(${gp})</span></td>`;
+    }).join("");
+    if(!tgp) return "";
+    return `<tr class="${mo===nowMo?"curm":""}"><td class="l">${MON[mo]}${mo===nowMo?" ◂":""}</td>${tds}`
+      + `<td><b>${tg}–${ta}</b> <span class="match">${n2((tg+ta)/tgp)}/m</span></td></tr>`;
+  }).join("");
+  const sk = r.streak || {};
+  const summary = `<div class="match" style="margin-top:8px;line-height:1.6">
+    Bieżące serie: bez gola <b>${sk.g??"–"}</b> m (rekord ${sk.g_max??"–"}), bez asysty <b>${sk.a??"–"}</b> m,
+    bez punktu <b>${sk.p??"–"}</b> m (rekord ${sk.p_max??"–"}).<br>
+    Miesiące 0–0 (min. 3 mecze): <b>${zeroCnt}</b> z ${eligible}. Skuteczność strzałów (kariera): <b>${pc(r.sh||0)}</b>.
+    ${r.luck && r.luck.n ? `<br>Ost. ${r.luck.n} m: ${r.luck.g} G z ${r.luck.s} strzałów, oczekiwane ${n2(r.luck.xg)} → <b>${r.luck.diff>0?"+":""}${n2(r.luck.diff)}</b>.` : ""}
+  </div>`;
+  return `<table class="mini"><thead>${head}</thead><tbody>${body}</tbody></table>${summary}`;
+}
 function detail(r){
   return `<div class="dgrid">
     <div class="dbox"><h4>H2H przeciw ${esc(r.opp)} <span>· od sezonu ${esc(M.h2h_from||"")}, sezon zasadniczy</span></h4>${logTable(r.h2h_log, r.home)}</div>
-    <div class="dbox"><h4>Ostatnie 10 meczów <span>· forma</span></h4>${logTable(r.f10_log)}</div>
+    <div class="dbox"><h4>Ostatnie 10 meczów <span>· forma</span></h4>${logTable(r.f10_log)}
+      <h4 style="margin-top:14px">Miesiące w karierze <span>· G–A (mecze), wszystkie rywale</span></h4>${monthsBox(r)}</div>
   </div>`;
 }
 render();

@@ -63,6 +63,10 @@ OPP_SHRINK_GP = 15                           # ile meczów rywala potrzeba, by j
 H2H_PSEUDO = {"g": 1.5, "a": 1.5, "p": 2.5, "s": 8.0}
 H2H_CLAMP = (0.80, 1.25)
 MARKETS = ("g", "a", "p", "s")
+SHOT_MODEL_WEIGHT = 0.70                     # gole: 70% ze strzałów × skuteczność, 30% z samych goli
+SH_PRIOR = {"F": 0.105, "D": 0.050}          # typowa skuteczność strzałów wg pozycji
+SH_PRIOR_SHOTS = 120                         # "wirtualne" strzały do wygładzenia skuteczności
+LUCK_GAMES = 15                              # okno wskaźnika pech / fart
 
 
 # ---------------------------------------------------------------- HTTP + cache
@@ -288,6 +292,13 @@ def project(games, as_of: dt.date, posg: str, opp: str, is_home: bool, opp_f: di
         wsum += w
     r60 = {k: (sums[k] + prior[k] * PRIOR_MINUTES / 60) / ((mins + PRIOR_MINUTES) / 60) for k in MARKETS}
 
+    # Gole ze strzałów: tempo strzałów × skuteczność z całej dostępnej kariery (wygładzona do średniej pozycji).
+    # Zawodnik, który strzela dużo, a ostatnio "nie wpada", dostaje uczciwie wyższą szansę – i odwrotnie.
+    sh = shooting_pct(hist_all, posg)
+    r60_g_raw = r60["g"]
+    r60["g"] = SHOT_MODEL_WEIGHT * r60["s"] * sh + (1 - SHOT_MODEL_WEIGHT) * r60_g_raw
+    r60["p"] = r60["g"] + r60["a"]
+
     if hist:
         toi_recent = sum(g["toi"] for g in recent) / len(recent)
         toi_weighted = mins / wsum
@@ -312,7 +323,61 @@ def project(games, as_of: dt.date, posg: str, opp: str, is_home: bool, opp_f: di
         of = opp_f.get("sa" if k == "s" else "ga", 1.0)
         lam = r60[k] / 60 * exp_toi * of * ha * h2h[k]
         res[k] = {"lam": lam, "r60": r60[k], "h2h_f": h2h[k], "opp_f": of}
+    res["g"]["sh"] = sh
+    res["g"]["r60_raw"] = r60_g_raw
     return res, hist, vs, exp_toi
+
+
+def shooting_pct(games, posg):
+    g = sum(x["g"] for x in games)
+    s = sum(x["s"] for x in games)
+    return (g + SH_PRIOR[posg] * SH_PRIOR_SHOTS) / (s + SH_PRIOR_SHOTS)
+
+
+def streaks(games):
+    """Serie bez zdarzenia: bieżąca (od ostatniego meczu wstecz) i najdłuższa w dostępnej historii."""
+    out = {}
+    for k in ("g", "a", "p"):
+        cur = 0
+        for x in reversed(games):
+            if x[k] > 0:
+                break
+            cur += 1
+        best = run = 0
+        for x in games:
+            run = run + 1 if x[k] == 0 else 0
+            best = max(best, run)
+        out[k] = cur
+        out[k + "_max"] = best
+    s3 = 0
+    for x in reversed(games):
+        if x["s"] >= 3:
+            break
+        s3 += 1
+    out["s"] = s3
+    return out
+
+
+def luck(games, sh, n=LUCK_GAMES):
+    """Gole w ostatnich n meczach vs oczekiwane z liczby strzałów (strzały × skuteczność z kariery)."""
+    last = games[-n:]
+    shots = sum(x["s"] for x in last)
+    goals = sum(x["g"] for x in last)
+    xg = shots * sh
+    return {"n": len(last), "g": goals, "s": shots, "xg": round(xg, 2), "diff": round(goals - xg, 2)}
+
+
+def monthly(games):
+    """[sezon, miesiąc, mecze, G, A] dla każdego miesiąca w dostępnej historii."""
+    agg = {}
+    for x in games:
+        y, mth = int(x["date"][:4]), int(x["date"][5:7])
+        s = season_label(season_of(dt.date(y, mth, 1)))
+        a = agg.setdefault((s, mth), [0, 0, 0])
+        a[0] += 1
+        a[1] += x["g"]
+        a[2] += x["a"]
+    return [[s, mth, *v] for (s, mth), v in sorted(agg.items())]
 
 
 def form_stats(games):
@@ -353,6 +418,9 @@ def build_row(pl, game, games, as_of, team_dates, factors, season):
             e["p2"] = round(pois_ge(lam, 2), 4)
         m[k] = e
 
+    all_hist = [g for g in games if g["date"] < as_of.isoformat()]
+    sh = proj["g"]["sh"]
+
     start = game.get("startTimeUTC", "")
     try:
         t_pl = dt.datetime.fromisoformat(start.replace("Z", "+00:00")).astimezone(TZ_PL).strftime("%H:%M")
@@ -370,6 +438,8 @@ def build_row(pl, game, games, as_of, team_dates, factors, season):
                     for g in reversed(vs)],
         "f10_log": [[g["date"], int(g["home"]), g["team"], g["opp"], g["g"], g["a"], g["s"], round(g["toi"], 1)]
                     for g in reversed(hist[-FORM_GAMES:])],
+        "sh": round(sh, 4), "streak": streaks(all_hist), "luck": luck(all_hist, sh),
+        "months": monthly(all_hist),
         "m": m, "season": season,
     }
 
@@ -436,7 +506,13 @@ CSV_COLS = [
     ("Strzały 4+ %", lambda r: pct(r["m"]["s"]["p4"])),
     ("Forma10 G", lambda r: r["f10"]["g"]), ("Forma10 A", lambda r: r["f10"]["a"]),
     ("Forma10 SOG", lambda r: r["f10"]["s"]), ("Forma10 mecze", lambda r: r["f10"]["gp"]),
-    ("Forma10 mecze z golem", lambda r: r["f10"]["hg"]), ("Forma10 mecze z punktem", lambda r: r["f10"]["hp"]),
+    ("Skuteczność kariera %", lambda r: pct(r["sh"])),
+    ("Seria bez G", lambda r: r["streak"]["g"]), ("Seria bez A", lambda r: r["streak"]["a"]),
+    ("Seria bez PKT", lambda r: r["streak"]["p"]), ("Najdłuższa seria bez G", lambda r: r["streak"]["g_max"]),
+    ("Najdłuższa seria bez PKT", lambda r: r["streak"]["p_max"]),
+    (f"Gole ost. {LUCK_GAMES}m", lambda r: r["luck"]["g"]), (f"Oczek. gole ost. {LUCK_GAMES}m", lambda r: r["luck"]["xg"]),
+    ("Pech/fart G", lambda r: r["luck"]["diff"]),
+    ("Forma10 mecze z golem",lambda r: r["f10"]["hg"]), ("Forma10 mecze z punktem", lambda r: r["f10"]["hp"]),
     ("H2H mecze", lambda r: r["h2h"]["gp"]), ("H2H G", lambda r: r["h2h"]["g"]),
     ("H2H mecze z golem", lambda r: r["h2h"]["hg"]),
     ("H2H A", lambda r: r["h2h"]["a"]), ("H2H mecze z asystą", lambda r: r["h2h"]["ha"]),
@@ -519,6 +595,7 @@ def backtest(http: Http, start: dt.date, end: dt.date, workers: int, out_dir: Pa
                ("Strzały 2+", "s", 2), ("Strzały 3+", "s", 3), ("Strzały 4+", "s", 4)]
     recs = {t[0]: [] for t in targets}
     detail = []
+    streak_recs = []   # (seria bez G, seria bez PKT, pech/fart, P(gol), P(pkt), gol?, pkt?)
     day = start
     while day <= end:
         rows, games, logs = analyse_day(http, day, workers, historical_rosters=True, quiet=True)
@@ -533,6 +610,8 @@ def backtest(http: Http, start: dt.date, end: dt.date, workers: int, out_dir: Pa
                 p = r["m"][k][f"p{t}"]
                 y = 1 if actual[k] >= t else 0
                 recs[label].append((p, y))
+            streak_recs.append((r["streak"]["g"], r["streak"]["p"], r["luck"]["diff"],
+                                r["m"]["g"]["p1"], r["m"]["p"]["p1"], int(actual["g"] > 0), int(actual["p"] > 0)))
             detail.append([day.isoformat(), r["name"], r["team"], r["opp"],
                            r["m"]["g"]["p1"], actual["g"], r["m"]["a"]["p1"], actual["a"],
                            r["m"]["p"]["p1"], actual["p"], r["m"]["s"]["lam"], actual["s"]])
@@ -567,6 +646,8 @@ def backtest(http: Http, start: dt.date, end: dt.date, workers: int, out_dir: Pa
             print(f"  prognoza {lo*100:>3.0f}-{min(hi,1)*100:>3.0f}%: śr. {sum(p for p,_ in b)/len(b)*100:5.1f}%"
                   f"  → faktycznie {sum(y for _,y in b)/len(b)*100:5.1f}%   (n={len(b)})")
 
+    report_streaks(streak_recs)
+
     path = out_dir / f"backtest_{start}_{end}.csv"
     with path.open("w", newline="", encoding="utf-8-sig") as f:
         w = csv.writer(f, delimiter=";")
@@ -575,6 +656,38 @@ def backtest(http: Http, start: dt.date, end: dt.date, workers: int, out_dir: Pa
         w.writerows(detail)
     print(f"\nSzczegóły zapisane: {path}")
     print("Poprawa = o ile model jest lepszy od zgadywania średniej ligowej (Brier skill). >0% = model wnosi wartość.")
+
+
+def report_streaks(recs):
+    """Czy po serii zer / 'pechu' zawodnik trafia częściej, niż przewidział model?
+    Wskaźnik = faktycznie / prognoza. ~1,00 = model już to uwzględnia, seria nic nie dodaje.
+    Wyraźnie > 1 przy dużym N = warto dodać korektę za serię."""
+    if not recs:
+        return
+
+    def table(title, idx_key, buckets, idx_p, idx_y):
+        print(f"\n{title}")
+        print(f"  {'Grupa':<22}{'N':>7}{'Prognoza':>11}{'Faktycznie':>12}{'Wskaźnik':>10}{'±':>8}")
+        for lab, lo, hi in buckets:
+            b = [x for x in recs if lo <= x[idx_key] < hi]
+            if len(b) < 30:
+                print(f"  {lab:<22}{len(b):>7}   (za mało danych)")
+                continue
+            n = len(b)
+            p = sum(x[idx_p] for x in b) / n
+            y = sum(x[idx_y] for x in b) / n
+            se = (p * (1 - p) / n) ** 0.5 / p if p > 0 else 0   # błąd standardowy wskaźnika
+            print(f"  {lab:<22}{n:>7}{p*100:>10.1f}%{y*100:>11.1f}%{y/p if p else 0:>10.2f}{1.96*se:>8.2f}")
+
+    print("\n=== SERIE I PECH – CZY WARTO GRAĆ NA 'PRZEŁAMANIE'? ===")
+    print("Wskaźnik = faktycznie / prognoza modelu. Jeśli 1,00 mieści się w przedziale ±, seria nic nie dodaje.")
+    streak_b = [("0 (strzelił ost.)", 0, 1), ("1–2 mecze", 1, 3), ("3–4 mecze", 3, 5),
+                ("5–7 meczów", 5, 8), ("8–12 meczów", 8, 13), ("13+ meczów", 13, 10**6)]
+    table("Gol w meczu – wg bieżącej serii bez gola", 0, streak_b, 3, 5)
+    table("Punkt w meczu – wg bieżącej serii bez punktu", 1, streak_b, 4, 6)
+    luck_b = [("pech ≤ −3 G", -99, -3), ("pech −3…−1,5", -3, -1.5), ("−1,5…−0,5", -1.5, -0.5),
+              ("w normie ±0,5", -0.5, 0.5), ("+0,5…+1,5", 0.5, 1.5), ("fart +1,5…+3", 1.5, 3), ("fart ≥ +3", 3, 99)]
+    table(f"Gol w meczu – wg pecha/fartu (gole − oczekiwane ze strzałów, ost. {LUCK_GAMES} m)", 2, luck_b, 3, 5)
 
 
 # ---------------------------------------------------------------- main

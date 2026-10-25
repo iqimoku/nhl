@@ -1,0 +1,58 @@
+name: Backtest NHL
+
+on:
+  workflow_dispatch:
+    inputs:
+      start:
+        description: "Od (RRRR-MM-DD)"
+        required: true
+        default: "2025-11-01"
+      end:
+        description: "Do (RRRR-MM-DD)"
+        required: true
+        default: "2026-04-15"
+
+permissions:
+  contents: read
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalacja
+        run: pip install -r requirements.txt
+
+      - uses: actions/cache@v4
+        with:
+          path: cache
+          key: nhl-cache-bt-${{ github.run_id }}
+          restore-keys: |
+            nhl-cache-bt-
+            nhl-cache-
+
+      - name: Backtest
+        env:
+          START: ${{ github.event.inputs.start }}
+          END: ${{ github.event.inputs.end }}
+        run: |
+          python nhl_model.py --backtest "$START" "$END" --out raporty | tee backtest.txt
+          {
+            echo "## Backtest $START → $END"
+            echo '```'
+            sed -n '/=== WYNIKI BACKTESTU ===/,$p' backtest.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backtest-wyniki
+          path: |
+            backtest.txt
+            raporty/backtest_*.csv
