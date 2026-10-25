@@ -68,6 +68,10 @@ td{font-variant-numeric:tabular-nums}
   background:#fff1d6;color:#8a4b00;border:1px solid #f3c56b}
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .chase{background:#3a2a10;color:#ffcf7a;border-color:#6b4b14} }
 :root[data-theme="dark"] .chase{background:#3a2a10;color:#ffcf7a;border-color:#6b4b14}
+.tbadge{display:inline-block;font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;margin-left:6px;border:1px solid var(--line)}
+.tbadge.tdown{color:var(--bad);border-color:var(--bad)}
+.tbadge.tup{color:var(--good);border-color:var(--good)}
+.tbadge.tflat{color:var(--muted)}
 .dwarn{flex-basis:100%;font-size:12.5px;padding:8px 12px;border-radius:8px;background:var(--warn-soft);color:var(--warn)}
 .tog{font:inherit;font-size:11px;font-weight:600;margin-left:8px;padding:2px 7px;border-radius:6px;cursor:pointer;
   border:1px solid var(--line);background:var(--panel);color:var(--accent)}
@@ -131,6 +135,26 @@ table.mini tr.sum + tr.sum td{border-top:1px solid var(--line)}
     <select id="pos"><option value="">Wszyscy</option><option value="F">Napastnicy</option><option value="D">Obrońcy</option></select>
     <label>min. <input type="range" id="min" min="0" max="80" step="5" value="0"> <span id="minv">0%</span></label>
     <label><input type="checkbox" id="hide" checked> ukryj niegrających ostatnio</label>
+    <label title="Oczekiwany czas na lodzie (kolumna TOI)">TOI min:
+      <input type="number" id="tmin" min="0" max="30" step="0.5" placeholder="od" style="width:62px"> –
+      <input type="number" id="tmax" min="0" max="30" step="0.5" placeholder="do" style="width:62px">
+      <select id="tpreset" title="Szybki wybór">
+        <option value="">dowolne</option>
+        <option value="17-21">17–21 (czołowe linie)</option>
+        <option value="15-30">15+</option>
+        <option value="18-30">18+</option>
+        <option value="0-14">do 14 (dolne linie)</option>
+      </select>
+    </label>
+    <label title="Miesiąc 0–0 = miesiąc z min. 3 meczami bez gola i bez asysty">Historia miesięcy:
+      <select id="hist">
+        <option value="">wszyscy</option>
+        <option value="mon0">w tym miesiącu (rok do roku) nigdy 0–0</option>
+        <option value="car0">w całej karierze nigdy miesiąca 0–0</option>
+        <option value="anom">⚡ teraz 0–0, a w tym miesiącu nigdy wcześniej</option>
+        <option value="anomc">⚡ teraz 0–0, a w karierze nigdy wcześniej</option>
+      </select>
+    </label>
     <label>Susza:
       <select id="drought">
         <option value="">wszyscy</option>
@@ -162,7 +186,9 @@ table.mini tr.sum + tr.sum td{border-top:1px solid var(--line)}
       <li><b>Kalibracja</b> – procenty są poprawione na podstawie backtestu (plik calibration.json), tak aby prognoza 30% sprawdzała się w ok. 30% przypadków. Strzały liczone są rozkładem o większym rozrzucie niż Poisson (ujemny dwumianowy), bo liczba strzałów waha się bardziej, niż zakłada Poisson – stąd niższe, uczciwsze szanse na 3+ i 4+. Informacja o kalibracji jest w nagłówku strony.</li>
       <li><b>Gole w modelu</b> liczone są w 70% jako strzały na 60 min × skuteczność z kariery, w 30% z samych goli. Dzięki temu zawodnik, który strzela dużo, a ostatnio „nie wpada”, dostaje uczciwie wyższą szansę.</li>
       <li><b>Pech/fart</b> (zakładka Gole) – gole w ostatnich 15 meczach minus gole oczekiwane z jego strzałów. Ujemny = pech (strzela, nie wpada), dodatni = fart. <b>Seria bez …</b> – ile meczów z rzędu bez zdarzenia (w nawiasie rekord w dostępnej historii); pogrubiona, gdy zbliża się do rekordu. Serie to podgląd – <u>nie</u> zmieniają procentów; czy warto je grać, sprawdza backtest.</li>
-      <li><b>Susza</b> (filtr) – pokazuje tylko zawodników w bieżącym miesiącu bez gola / asysty (min. 3 mecze w miesiącu), z serią ≥ N meczów bez G, A lub punktu, albo z pechem na strzałach. Przy nazwisku pojawia się wtedy podsumowanie, np. „październik: 0–0 w 6 m · bez G 6 m”.</li>
+      <li><b>Susza</b> (filtr) – pokazuje tylko zawodników w bieżącym miesiącu bez gola / asysty (min. 3 mecze w miesiącu), z serią ≥ N meczów bez G, A lub punktu, albo z pechem na strzałach. Przy nazwisku pojawia się wtedy podsumowanie, np. „październik: 0–0 w 6 m · bez G 6 m”, oraz trend minut „TOI 18,4 →+0,3” (średnia z 5 ostatnich meczów i zmiana względem 5 wcześniejszych). Czerwona strzałka ↓ = obcięte minuty o 1,5+ min – zwykle utrata roli, czyli sygnał ostrzegawczy.</li>
+      <li><b>Historia miesięcy</b> (filtr) – miesiąc 0–0 to miesiąc z min. 3 meczami bez gola i bez asysty. „Rok do roku” porównuje ten sam miesiąc w poprzednich sezonach (min. 2 sezony danych), „kariera” – wszystkie miesiące (min. 6). Opcje ⚡ pokazują anomalię: zawodnik ma teraz miesiąc 0–0, choć wcześniej nigdy mu się to nie zdarzyło. Przy nazwisku: „październik: 0–0 0× na 5 sez. · kariera: 1× na 30 mies.”.</li>
+      <li><b>TOI min</b> (filtr) – zakres oczekiwanego czasu na lodzie. Szybki wybór „17–21” zostawia zawodników z czołowych linii.</li>
       <li><b>Miesiące w karierze</b> (w rozwiniętej linii) – G–A w każdym miesiącu każdego sezonu; na czerwono miesiące 0–0, podświetlony bieżący miesiąc.</li>
       <li><b>ELC</b> – młody zawodnik prawdopodobnie na kontrakcie wejściowym (szczegóły na stronie „Bonusy ELC”). <b>🎯 ELC: brakuje 3 G do 20</b> – w końcówce sezonu (≤ 30 meczów drużyny do końca) zawodnik ma realną szansę dobić do progu bonusu „A” i może dostać więcej okazji. Najedź na znaczek, żeby zobaczyć szansę na osiągnięcie progu.</li>
       <li>Status „nie grał w N ost. meczach” zwykle oznacza kontuzję lub odsunięcie – model nie zna aktualnych składów ani bramkarza rywala, sprawdź je przed meczem.</li>
@@ -244,7 +270,16 @@ if(R.some(r => r.elc)){
   $("#chasen").textContent = `(${R.filter(isChasing).length})`;
 }
 $("#chase").onchange = e => { st.chase = e.target.checked; render(); };
-st.drought = ""; st.dn = 5;
+st.drought = ""; st.dn = 5; st.tmin = null; st.tmax = null;
+const numOrNull = v => v === "" || v == null || isNaN(+v) ? null : +v;
+$("#tmin").oninput = e => { st.tmin = numOrNull(e.target.value); $("#tpreset").value = ""; render(); };
+$("#tmax").oninput = e => { st.tmax = numOrNull(e.target.value); $("#tpreset").value = ""; render(); };
+$("#tpreset").onchange = e => {
+  const [a, b] = e.target.value ? e.target.value.split("-").map(Number) : [null, null];
+  st.tmin = a; st.tmax = b && b < 30 ? b : null;
+  $("#tmin").value = a ?? ""; $("#tmax").value = st.tmax ?? "";
+  render();
+};
 $("#drought").onchange = e => {
   st.drought = e.target.value;
   $("#dnw").hidden = !["g","a","ga","p"].includes(st.drought);
@@ -262,13 +297,21 @@ $("#drought").onchange = e => {
   $("#dwarn").hidden = !w; $("#dwarn").textContent = w || "";
   _dsel(e);
 };
-$("#dn").oninput =e => { st.dn = Math.max(1, +e.target.value || 1); render(); };
+st.hist = "";
+const HWARN = "Historia miesięcy to podgląd – backtest jeszcze tego nie sprawdzał. Przy 4–6 sezonach „nigdy 0–0” to mała próba, a u zawodnika z wysokim tempem miesiąc 0–0 jest po prostu rzadki (i model już to wie). Patrz też na minuty (TOI) i trend minut.";
+$("#hist").onchange = e => {
+  st.hist = e.target.value;
+  const w = st.hist ? HWARN : DWARN[st.drought];
+  $("#dwarn").hidden = !w; $("#dwarn").textContent = w || "";
+  render();
+};
+$("#dn").oninput = e =>{ st.dn = Math.max(1, +e.target.value || 1); render(); };
 
 const LBL = {g:"G", a:"A", p:"PKT", s:"SOG"};
 function cols(){
   const m = st.m, L = LBL[m];
   const base = [
-    {k:"name", t:"Zawodnik", l:true, v:r=>r.name, h:r=>`<span class="name">${esc(r.name)}</span><span class="pos">${esc(r.pos)}${r.num?" #"+r.num:""}</span><button class="tog ${OPEN.has(r.id)?"on":""}" data-id="${r.id}">H2H ${OPEN.has(r.id)?"▾":"▸"}</button>${elcBadge(r)}${droughtNote(r)}${r.inactive?`<span class="badge">${esc(r.status)}</span>`:""}`},
+    {k:"name", t:"Zawodnik", l:true, v:r=>r.name, h:r=>`<span class="name">${esc(r.name)}</span><span class="pos">${esc(r.pos)}${r.num?" #"+r.num:""}</span><button class="tog ${OPEN.has(r.id)?"on":""}" data-id="${r.id}">H2H ${OPEN.has(r.id)?"▾":"▸"}</button>${elcBadge(r)}${histNote(r)}${droughtNote(r)}${r.inactive?`<span class="badge">${esc(r.status)}</span>`:""}`},
     {k:"match", t:"Mecz", l:true, v:r=>r.game, h:r=>`<b>${esc(r.team)}</b> <span class="match">${r.home?"vs":"@"} ${esc(r.opp)} · ${esc(r.time)}</span>`},
   ];
   const probCell = p => `<div class="prob"><span class="bar"><i style="width:${Math.min(100,p*100)}%"></i></span><b>${pc(p)}</b></div>`;
@@ -335,11 +378,12 @@ function render(){
     (!st.pos || r.posg===st.pos) &&
     (!st.hide || !r.inactive) &&
     (!st.chase || isChasing(r)) &&
-    droughtMatch(r) &&
+    droughtMatch(r) && histMatch(r) &&
+    (st.tmin == null || r.toi >= st.tmin) && (st.tmax == null || r.toi <= st.tmax) &&
     (!st.q || r.name.toLowerCase().includes(st.q)) &&
     mainProb(r)*100 >= st.min);
   rows.sort((a,b)=>{ const x=sc.v(a), y=sc.v(b); return (x<y?-1:x>y?1:0)*st.dir; });
-  $("#dcnt").textContent = st.drought ? `(${rows.length})` : "";
+  $("#dcnt").textContent = (st.drought || st.hist) ? `(${rows.length})` : "";
 
   $("#t thead").innerHTML = "<tr><th class='l'>#</th>" + C.map(c =>
     `<th class="${c.l?"l":""} ${c.k===sc.k?"sorted":""}" data-k="${c.k}">${esc(c.t)}${c.k===sc.k?(st.dir<0?" ↓":" ↑"):""}</th>`).join("") + "</tr>";
@@ -388,6 +432,44 @@ function droughtMatch(r){
   if(mode==="luck") return r.luck && r.luck.diff <= -1.5;
   return true;
 }
+// trend minut: średnia z 5 ostatnich meczów vs 5 wcześniejszych (z ostatnich 10)
+function toiTrend(r){
+  const L = (r.f10_log || []).map(x => x[7]);   // od najnowszych
+  if(L.length < 6) return null;
+  const a = L.slice(0, 5), b = L.slice(5);
+  const avg = v => v.reduce((s, x) => s + x, 0) / v.length;
+  return {last: avg(a), prev: avg(b), diff: avg(a) - avg(b)};
+}
+// ---- historia miesięcy: ile razy miesiąc 0–0 (min. 3 mecze) – w tym samym miesiącu rok do roku i w całej karierze
+const MIN_GP_MONTH = 3, MIN_SEASONS = 2, MIN_MONTHS = 6;
+function monthHistory(r){
+  const past = (r.months || []).filter(m => !(m[0] === CUR_SEASON && m[1] === CUR_MONTH) && m[2] >= MIN_GP_MONTH);
+  const same = past.filter(m => m[1] === CUR_MONTH);
+  return {
+    sameN: same.length, sameZ: same.filter(m => m[3] + m[4] === 0).length,
+    carN: past.length,  carZ: past.filter(m => m[3] + m[4] === 0).length,
+  };
+}
+function curZero(r){ const c = curMonth(r); return c.gp >= MIN_GP_MONTH && c.g + c.a === 0; }
+function histMatch(r){
+  const mode = st.hist;
+  if(!mode) return true;
+  const h = monthHistory(r);
+  const neverSame = h.sameN >= MIN_SEASONS && h.sameZ === 0;
+  const neverCar = h.carN >= MIN_MONTHS && h.carZ === 0;
+  if(mode === "mon0") return neverSame;
+  if(mode === "car0") return neverCar;
+  if(mode === "anom") return curZero(r) && neverSame;
+  if(mode === "anomc") return curZero(r) && neverCar;
+  return true;
+}
+function histNote(r){
+  if(!st.hist) return "";
+  const h = monthHistory(r), c = curMonth(r);
+  const mon = MON_FULL[CUR_MONTH] || "ten miesiąc";
+  const now = c.gp ? ` · teraz ${c.g}–${c.a} w ${c.gp} m` : "";
+  return `<span class="badge" title="Miesiąc 0–0 = min. ${MIN_GP_MONTH} mecze bez G i bez A">${esc(mon)}: 0–0 ${h.sameZ}× na ${h.sameN} sez. · kariera: ${h.carZ}× na ${h.carN} mies.${esc(now)}</span>`;
+}
 function droughtNote(r){
   if(!st.drought) return "";
   const c = curMonth(r), sk = r.streak || {};
@@ -395,7 +477,16 @@ function droughtNote(r){
   if(c.gp) parts.push(`${MON_FULL[CUR_MONTH]}: ${c.g}–${c.a} w ${c.gp} m`);
   if((sk.g||0) >= 3) parts.push(`bez G ${sk.g} m`);
   if((sk.a||0) >= 3) parts.push(`bez A ${sk.a} m`);
-  return parts.length ? `<span class="badge">${esc(parts.join(" · "))}</span>` : "";
+  let html = parts.length ? `<span class="badge">${esc(parts.join(" · "))}</span>` : "";
+  const t = toiTrend(r);
+  if(t){
+    const cls = t.diff <= -1.5 ? "tdown" : t.diff >= 1.5 ? "tup" : "tflat";
+    const arrow = t.diff <= -1.5 ? "↓" : t.diff >= 1.5 ? "↑" : "→";
+    const tip = `Średni czas na lodzie: ostatnie 5 meczów ${n2(t.last,1)} min, 5 wcześniejszych ${n2(t.prev,1)} min`
+      + (t.diff <= -1.5 ? " – obcięte minuty, możliwa utrata roli" : "");
+    html += `<span class="tbadge ${cls}" title="${tip}">TOI ${n2(t.last,1)} ${arrow}${t.diff>0?"+":""}${n2(t.diff,1)}</span>`;
+  }
+  return html;
 }
 function elcBadge(r){
   if(!r.elc) return "";
