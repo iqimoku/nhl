@@ -6,14 +6,14 @@ on:
       start:
         description: "Od (RRRR-MM-DD)"
         required: true
-        default: "2025-11-01"
+        default: "2022-10-01"
       end:
         description: "Do (RRRR-MM-DD)"
         required: true
-        default: "2026-04-15"
+        default: "2026-04-20"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   backtest:
@@ -46,9 +46,22 @@ jobs:
           {
             echo "## Backtest $START → $END"
             echo '```'
-            sed -n '/=== WYNIKI BACKTESTU ===/,$p' backtest.txt
+            sed -n '/^Uczę/,$p' backtest.txt
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Zapis kalibracji do repozytorium
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add calibration.json
+          if git diff --cached --quiet; then
+            echo "Kalibracja bez zmian."
+          else
+            git commit -m "Kalibracja z backtestu ${{ github.event.inputs.start }} – ${{ github.event.inputs.end }}"
+            git pull --rebase
+            git push
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
@@ -56,3 +69,4 @@ jobs:
           path: |
             backtest.txt
             raporty/backtest_*.csv
+            calibration.json
