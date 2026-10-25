@@ -62,6 +62,12 @@ tr.inactive{opacity:.55}
 td{font-variant-numeric:tabular-nums}
 .adj.up{color:var(--good)} .adj.down{color:var(--bad)}
 .empty{padding:30px;text-align:center;color:var(--muted)}
+.elc{display:inline-block;font-size:10px;font-weight:700;padding:1px 5px;border-radius:5px;margin-left:6px;
+  color:var(--muted);border:1px solid var(--line)}
+.chase{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;margin-left:6px;
+  background:#fff1d6;color:#8a4b00;border:1px solid #f3c56b}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .chase{background:#3a2a10;color:#ffcf7a;border-color:#6b4b14} }
+:root[data-theme="dark"] .chase{background:#3a2a10;color:#ffcf7a;border-color:#6b4b14}
 .tog{font:inherit;font-size:11px;font-weight:600;margin-left:8px;padding:2px 7px;border-radius:6px;cursor:pointer;
   border:1px solid var(--line);background:var(--panel);color:var(--accent)}
 .tog.on{background:var(--accent-soft);border-color:var(--accent)}
@@ -76,6 +82,9 @@ table.mini th,table.mini td{padding:4px 8px;font-size:12px;position:static}
 table.mini tr:last-child td{border-bottom:0}
 table.mini td.hit{font-weight:700;color:var(--good)}
 table.mini tr.sum td{font-weight:700;background:var(--accent-soft)}
+table.mini tr.sum.vt td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+table.mini tr.sum + tr.sum td{border-top:1px solid var(--line)}
+.vtoday{font-weight:700}
 .notes{margin-top:18px;color:var(--muted);font-size:13px;max-width:900px}
 .notes h3{color:var(--ink);font-size:14px;margin:16px 0 6px}
 .notes li{margin:3px 0}
@@ -93,6 +102,7 @@ table.mini tr.sum td{font-weight:700;background:var(--accent-soft)}
     <span class="sub" id="sub"></span>
     <div class="nav">
       <select id="day" hidden aria-label="Dzień"></select>
+      <a id="elcl" class="btn" hidden>Bonusy ELC</a>
       <a id="csv" class="btn" hidden download>CSV</a>
       <button class="btn" id="theme">Motyw</button>
     </div>
@@ -113,6 +123,7 @@ table.mini tr.sum td{font-weight:700;background:var(--accent-soft)}
     <select id="pos"><option value="">Wszyscy</option><option value="F">Napastnicy</option><option value="D">Obrońcy</option></select>
     <label>min. <input type="range" id="min" min="0" max="80" step="5" value="0"> <span id="minv">0%</span></label>
     <label><input type="checkbox" id="hide" checked> ukryj niegrających ostatnio</label>
+    <label id="chasel" hidden><input type="checkbox" id="chase"> tylko goniący bonus ELC 🎯 <span id="chasen"></span></label>
   </div>
 
   <div class="card"><div class="scroll"><table id="t"><thead></thead><tbody></tbody></table></div></div>
@@ -123,7 +134,8 @@ table.mini tr.sum td{font-weight:700;background:var(--accent-soft)}
       <li><b>%</b> – szansa modelu na zdarzenie w tym meczu (rozkład Poissona). <b>Kurs fair</b> = 1 / szansa: jeśli bukmacher daje wyraźnie więcej, model widzi wartość.</li>
       <li><b>Oczek.</b> – oczekiwana liczba zdarzeń. <b>Na 60</b> – tempo zawodnika na 60 min gry po wygładzeniu (sezony: <span id="seas"></span>).</li>
       <li><b>TOI</b> – oczekiwany czas na lodzie (60% ostatnie 10 meczów, 40% średnia ważona).</li>
-      <li><b>Rywal ×</b> – obrona rywala vs średnia ligi (1,10 = traci o 10% więcej). <b>Forma 10 / H2H</b> – np. „6 G · 6 m · gol w 3” = 6 goli w 6 meczach, gol padł w 3 z nich (przy strzałach: średnia na mecz i w ilu meczach było 3+). <b>H2H</b> obejmuje wszystkie mecze zawodnika przeciw temu rywalowi od sezonu <span id="h2hfrom"></span> (bieżący + 5 poprzednich, sezon zasadniczy). <b>H2H ×</b> – wynikająca z tego korekta (ograniczona do 0,80–1,25, bo próba jest mała).</li>
+      <li><b>Rywal ×</b> – obrona rywala vs średnia ligi (1,10 = traci o 10% więcej). <b>Forma 10 / H2H</b> – np. „6 G · 6 m · gol w 3” = 6 goli w 6 meczach, gol padł w 3 z nich (przy strzałach: średnia na mecz i w ilu meczach było 3+). <b>Dom / wyjazd</b> – ten sam H2H rozbity na mecze u siebie (🏠) i na wyjeździe (✈); pogrubiony jest wariant zgodny z dzisiejszym meczem. <b>H2H</b> obejmuje wszystkie mecze zawodnika przeciw temu rywalowi od sezonu <span id="h2hfrom"></span> (bieżący + 5 poprzednich, sezon zasadniczy). <b>H2H ×</b> – wynikająca z tego korekta (ograniczona do 0,80–1,25, bo próba jest mała).</li>
+      <li><b>ELC</b> – młody zawodnik prawdopodobnie na kontrakcie wejściowym (szczegóły na stronie „Bonusy ELC”). <b>🎯 ELC: brakuje 3 G do 20</b> – w końcówce sezonu (≤ 30 meczów drużyny do końca) zawodnik ma realną szansę dobić do progu bonusu „A” i może dostać więcej okazji. Najedź na znaczek, żeby zobaczyć szansę na osiągnięcie progu.</li>
       <li>Status „nie grał w N ost. meczach” zwykle oznacza kontuzję lub odsunięcie – model nie zna aktualnych składów ani bramkarza rywala, sprawdź je przed meczem.</li>
     </ul>
   </div>
@@ -149,6 +161,7 @@ $("#theme").onclick = () => {
 };
 
 if(M.csv){ const a = $("#csv"); a.href = M.csv; a.hidden = false; }
+if(M.elc){ const a = $("#elcl"); a.href = M.elc; a.hidden = false; }
 if(M.root !== null && M.root !== undefined){
   fetch(M.root + "days.json", {cache:"no-store"}).then(r => r.json()).then(list => {
     const s = $("#day");
@@ -195,12 +208,18 @@ $("#team").onchange = e => { st.team = e.target.value; render(); };
 $("#pos").onchange = e => { st.pos = e.target.value; render(); };
 $("#min").oninput = e => { st.min = +e.target.value; $("#minv").textContent = st.min + "%"; render(); };
 $("#hide").onchange = e => { st.hide = e.target.checked; render(); };
+const isChasing = r => !!(r.elc && r.elc.chase && r.elc.chase.length);
+if(R.some(r => r.elc)){
+  $("#chasel").hidden = false;
+  $("#chasen").textContent = `(${R.filter(isChasing).length})`;
+}
+$("#chase").onchange = e => { st.chase = e.target.checked; render(); };
 
 const LBL = {g:"G", a:"A", p:"PKT", s:"SOG"};
 function cols(){
   const m = st.m, L = LBL[m];
   const base = [
-    {k:"name", t:"Zawodnik", l:true, v:r=>r.name, h:r=>`<span class="name">${esc(r.name)}</span><span class="pos">${esc(r.pos)}${r.num?" #"+r.num:""}</span><button class="tog ${OPEN.has(r.id)?"on":""}" data-id="${r.id}">H2H ${OPEN.has(r.id)?"▾":"▸"}</button>${r.inactive?`<span class="badge">${esc(r.status)}</span>`:""}`},
+    {k:"name", t:"Zawodnik", l:true, v:r=>r.name, h:r=>`<span class="name">${esc(r.name)}</span><span class="pos">${esc(r.pos)}${r.num?" #"+r.num:""}</span><button class="tog ${OPEN.has(r.id)?"on":""}" data-id="${r.id}">H2H ${OPEN.has(r.id)?"▾":"▸"}</button>${elcBadge(r)}${r.inactive?`<span class="badge">${esc(r.status)}</span>`:""}`},
     {k:"match", t:"Mecz", l:true, v:r=>r.game, h:r=>`<b>${esc(r.team)}</b> <span class="match">${r.home?"vs":"@"} ${esc(r.opp)} · ${esc(r.time)}</span>`},
   ];
   const probCell = p => `<div class="prob"><span class="bar"><i style="width:${Math.min(100,p*100)}%"></i></span><b>${pc(p)}</b></div>`;
@@ -218,6 +237,13 @@ function cols(){
     {k:"toi", t:"TOI", v:r=>r.toi, h:r=>n2(r.toi,1)},
     {k:"f10", t:`Forma 10 (${L})`, v:r=> r.f10.gp ? r.f10[m]/r.f10.gp : -1, h:r=>hist(r.f10)},
     {k:"h2h", t:`H2H (${L})`, v:r=> r.h2h.gp ? r.h2h[m]/r.h2h.gp : -1, h:r=>hist(r.h2h)},
+    {k:"h2hv", t:`H2H ${L} dom / wyjazd`, v:r=>{ const f = venueStats(r, r.home); return f.gp ? f[m]/f.gp : -1; },
+      h:r=>{
+        const fh = venueStats(r, true), fa = venueStats(r, false);
+        const one = (f, lab, today) => !f.gp ? `<span class="match">${lab} –</span>`
+          : `<span class="${today?"vtoday":"match"}">${lab} ${m==="s" ? n2(f.s/f.gp,1)+"/m" : f[m]+" "+L} · ${f.gp} m</span>`;
+        return one(fh, "🏠", r.home) + "<br>" + one(fa, "✈", !r.home);
+      }},
     {k:"opp", t:"Rywal ×", v:r=>r.m[m].opp_f, h:r=>adj(r.m[m].opp_f)},
     {k:"h2hf", t:"H2H ×", v:r=>r.m[m].h2h_f, h:r=>adj(r.m[m].h2h_f)},
     {k:"gp", t:"Mecze", v:r=>r.gp, h:r=>r.gp},
@@ -247,6 +273,7 @@ function render(){
     (!st.team || r.team===st.team) &&
     (!st.pos || r.posg===st.pos) &&
     (!st.hide || !r.inactive) &&
+    (!st.chase || isChasing(r)) &&
     (!st.q || r.name.toLowerCase().includes(st.q)) &&
     mainProb(r)*100 >= st.min);
   rows.sort((a,b)=>{ const x=sc.v(a), y=sc.v(b); return (x<y?-1:x>y?1:0)*st.dir; });
@@ -270,9 +297,38 @@ function render(){
 }
 
 const OPEN = new Set();
+function elcBadge(r){
+  if(!r.elc) return "";
+  const t = r.elc.listed ? "ELC (z listy)" : "ELC – kandydat (kontrakt nie potwierdzony)";
+  if(!isChasing(r)) return `<span class="elc" title="${t}">ELC</span>`;
+  const c = r.elc.chase;
+  const txt = c.map(x => `brakuje ${x.need} ${x.lab} do ${x.th}`).join(", ");
+  const tip = c.map(x => `${x.lab}: ${x.need} do progu ${x.th}, zostało ${x.rem} meczów drużyny, szansa ${pc(x.prob)}`).join(" · ");
+  return `<span class="chase" title="${esc(tip)}">🎯 ELC: ${esc(txt)} · zostało ${c[0].rem} m</span>`;
+}
+function statsFrom(log){
+  const f = {gp:log.length, g:0, a:0, p:0, s:0, hg:0, ha:0, hp:0, hs:0};
+  log.forEach(([, , , , g, a, s]) => {
+    f.g+=g; f.a+=a; f.p+=g+a; f.s+=s;
+    if(g>0) f.hg++; if(a>0) f.ha++; if(g+a>0) f.hp++; if(s>=3) f.hs++;
+  });
+  return f;
+}
+function venueStats(r, home){ return statsFrom((r.h2h_log||[]).filter(x => !!x[1] === home)); }
 function fmtDate(s){ const [y,mo,d] = s.split("-"); return `${d}.${mo}.${y}`; }
 function seasonOf(s){ const [y,mo] = s.split("-").map(Number); const a = mo >= 8 ? y : y-1; return `${a}/${String(a+1).slice(2)}`; }
-function logTable(log, showOpp){
+function splitRows(log, todayHome){
+  const row = (home) => {
+    const f = statsFrom(log.filter(x => !!x[1] === home));
+    const lab = home ? "🏠 U siebie" : "✈ Na wyjeździe";
+    const cls = home === todayHome ? "sum vt" : "sum";
+    if(!f.gp) return `<tr class="${cls}"><td class="l" colspan="8">${lab}: brak meczów</td></tr>`;
+    return `<tr class="${cls}"><td class="l" colspan="3">${lab}${home===todayHome?" (dziś)":""}: ${f.gp} m · gol w ${f.hg} · punkt w ${f.hp} · 3+ SOG w ${f.hs}</td>`
+      + `<td>${f.g}</td><td>${f.a}</td><td>${f.p}</td><td>${n2(f.s/f.gp,1)}/m</td><td></td></tr>`;
+  };
+  return row(true) + row(false);
+}
+function logTable(log, todayHome){
   if(!log || !log.length) return `<p class="match">Brak meczów.</p>`;
   const hit = (v, t) => `<td class="${v>=t?"hit":""}">${v}</td>`;
   let sg=0, sa=0, ss=0, st3=0, wg=0, wp=0;
@@ -285,12 +341,13 @@ function logTable(log, showOpp){
   const n = log.length;
   const sum = `<tr class="sum"><td class="l" colspan="3">Razem ${n} m · gol w ${wg} · punkt w ${wp} · 3+ SOG w ${st3}</td>`
     + `<td>${sg}</td><td>${sa}</td><td>${sg+sa}</td><td>${n2(ss/n,1)}/m</td><td></td></tr>`;
+  const split = todayHome === undefined ? "" : splitRows(log, todayHome);
   return `<table class="mini"><thead><tr><th class="l">Data</th><th class="l">Sezon</th><th class="l">Mecz</th>`
-    + `<th>G</th><th>A</th><th>PKT</th><th>SOG</th><th>TOI</th></tr></thead><tbody>${body}${sum}</tbody></table>`;
+    + `<th>G</th><th>A</th><th>PKT</th><th>SOG</th><th>TOI</th></tr></thead><tbody>${body}${sum}${split}</tbody></table>`;
 }
 function detail(r){
   return `<div class="dgrid">
-    <div class="dbox"><h4>H2H przeciw ${esc(r.opp)} <span>· od sezonu ${esc(M.h2h_from||"")}, sezon zasadniczy</span></h4>${logTable(r.h2h_log)}</div>
+    <div class="dbox"><h4>H2H przeciw ${esc(r.opp)} <span>· od sezonu ${esc(M.h2h_from||"")}, sezon zasadniczy</span></h4>${logTable(r.h2h_log, r.home)}</div>
     <div class="dbox"><h4>Ostatnie 10 meczów <span>· forma</span></h4>${logTable(r.f10_log)}</div>
   </div>`;
 }

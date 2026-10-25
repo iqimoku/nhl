@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NHL – bonusy ELC</title>
+<style>
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --ink:#14171c; --muted:#5d6673; --line:#e3e6eb;
+  --accent:#0b5fff; --accent-soft:#e6eeff; --warn:#b45309; --warn-soft:#fff4e5;
+  --bar:#0b5fff; --bar-bg:#edf0f4; --good:#0f7b4f; --good-soft:#e5f5ec; --bad:#b42318;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1115; --panel:#171a20; --ink:#e8ebf0; --muted:#98a1ae; --line:#2a2f38;
+    --accent:#6e9bff; --accent-soft:#1d2a45; --warn:#f0a050; --warn-soft:#3a2a15;
+    --bar:#6e9bff; --bar-bg:#252a33; --good:#4cc38a; --good-soft:#15301f; --bad:#ff7a6b;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --panel:#171a20; --ink:#e8ebf0; --muted:#98a1ae; --line:#2a2f38;
+  --accent:#6e9bff; --accent-soft:#1d2a45; --warn:#f0a050; --warn-soft:#3a2a15;
+  --bar:#6e9bff; --bar-bg:#252a33; --good:#4cc38a; --good-soft:#15301f; --bad:#ff7a6b;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1400px;margin:0 auto;padding:20px 16px 48px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 16px;margin-bottom:16px}
+h1{font-size:22px;margin:0;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:13px}
+.nav{margin-left:auto;display:flex;gap:8px;align-items:center}
+.btn{font:inherit;font-size:12px;border:1px solid var(--line);background:var(--panel);color:var(--muted);
+  border-radius:8px;padding:5px 9px;cursor:pointer;text-decoration:none}
+.controls{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-bottom:12px}
+.controls input[type=search],.controls select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);
+  border-radius:8px;padding:7px 10px}
+.controls label{color:var(--muted);font-size:13px;display:flex;align-items:center;gap:6px}
+.info{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--muted)}
+.info b{color:var(--ink)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:1150px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+th{font-size:12px;color:var(--muted);font-weight:600;cursor:pointer;user-select:none;background:var(--panel);vertical-align:bottom}
+th small{display:block;font-weight:400}
+th.l,td.l{text-align:left}
+th.sorted{color:var(--ink)}
+tbody tr:hover{background:var(--accent-soft)}
+.name{font-weight:600}
+.pos,.muted{color:var(--muted);font-size:12px}
+.chip{display:inline-block;font-size:11px;padding:1px 6px;border-radius:6px;margin-left:6px}
+.chip.ok{background:var(--good-soft);color:var(--good)}
+.chip.cand{background:var(--warn-soft);color:var(--warn)}
+.prob{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+.prob .bar{width:46px;height:6px;border-radius:3px;background:var(--bar-bg);overflow:hidden}
+.prob .bar i{display:block;height:100%;background:var(--bar)}
+.prob b{min-width:42px}
+.yes{color:var(--good);font-weight:700}
+.tog{font:inherit;font-size:11px;font-weight:600;margin-left:8px;padding:2px 7px;border-radius:6px;cursor:pointer;
+  border:1px solid var(--line);background:var(--panel);color:var(--accent)}
+.tog.on{background:var(--accent-soft);border-color:var(--accent)}
+tr.detail>td{background:var(--bg);padding:12px 14px;text-align:left;white-space:normal}
+tr.detail:hover{background:none}
+table.mini{min-width:0;width:auto;background:var(--panel);border:1px solid var(--line);border-radius:8px;border-collapse:separate;border-spacing:0}
+table.mini th,table.mini td{padding:4px 10px;font-size:12px;cursor:default}
+table.mini tr:last-child td{border-bottom:0}
+.empty{padding:30px;text-align:center;color:var(--muted)}
+.notes{margin-top:18px;color:var(--muted);font-size:13px;max-width:950px}
+.notes h3{color:var(--ink);font-size:14px;margin:16px 0 6px}
+.notes li{margin:3px 0}
+[hidden]{display:none !important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Bonusy ELC</h1>
+    <span class="sub" id="sub"></span>
+    <div class="nav">
+      <a class="btn" id="back">← Mecze dnia</a>
+      <button class="btn" id="theme">Motyw</button>
+    </div>
+  </header>
+
+  <div class="info" id="info"></div>
+
+  <div class="controls">
+    <input type="search" id="q" placeholder="Szukaj zawodnika…">
+    <select id="team"><option value="">Wszystkie drużyny</option></select>
+    <select id="pos"><option value="">Wszyscy</option><option value="F">Napastnicy</option><option value="D">Obrońcy</option></select>
+    <select id="src">
+      <option value="">Lista + kandydaci</option>
+      <option value="listed">Tylko z listy (elc.csv)</option>
+      <option value="cand">Tylko kandydaci</option>
+    </select>
+    <select id="minb">
+      <option value="0">Dowolny bonus</option>
+      <option value="100000">Bonus ≥ 100k $</option>
+      <option value="150000">Bonus ≥ 150k $</option>
+      <option value="200000">Bonus ≥ 200k $</option>
+    </select>
+  </div>
+
+  <div class="card"><div class="scroll"><table id="t"><thead></thead><tbody></tbody></table></div></div>
+
+  <div class="notes">
+    <h3>Jak czytać</h3>
+    <ul>
+      <li><b>Gole / Asysty / Punkty / PKT na mecz</b> – szansa, że zawodnik osiągnie próg bonusu „A” do końca sezonu zasadniczego (symulacja <span id="sims"></span> przebiegów reszty sezonu). Próg zależy od pozycji: napastnik 20 G / 35 A / 60 PKT / 0,73 PKT na mecz, obrońca 10 G / 25 A / 40 PKT / 0,49. Próg PKT na mecz wymaga min. <span id="mgp"></span> meczów.</li>
+      <li><b>Projekcja</b> – średni wynik na koniec sezonu; w nawiasie zakres, w którym wynik mieści się w 80% symulacji.</li>
+      <li><b>Czas gry / +/-</b> – bieżące miejsce w drużynie wśród napastników lub obrońców (bonus: top 6 F / top 4 D w czasie gry, top 3 w +/-, przy min. 42 meczach). To stan na dziś, nie prognoza.</li>
+      <li><b>Oczek. progów</b> – średnia liczba spełnionych progów statystycznych (z 4 policzonych). <b>Oczek. $</b> = bonus za próg × oczekiwana liczba progów (tylko gdy kwota jest w elc.csv).</li>
+      <li><b>z listy</b> – zawodnik wpisany do elc.csv (potwierdzony kontrakt). <b>kandydat</b> – wybrany automatycznie (wiek ≤ 24, najwyżej 2 wcześniejsze sezony z min. 10 meczami w NHL) – to przybliżenie, sprawdź kontrakt na PuckPedii.</li>
+      <li>Nie liczymy progów przyznawanych w głosowaniu (All-Rookie Team, All-Star, nagrody) ani bonusów „B” (top 10 ligi). Model nie zna kontuzji ani zesłań do AHL ponad to, co widać w liczbie rozegranych meczów.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const DATA = __DATA__;
+const M = DATA.meta, R = DATA.rows;
+const st = {q:"", team:"", pos:"", src:"", minb:0, sort:"exp_hits", dir:-1};
+const OPEN = new Set();
+const $ = s => document.querySelector(s);
+const pc = p => (p*100).toFixed(1).replace(".", ",") + "%";
+const n1 = x => Number(x).toFixed(1).replace(".", ",");
+const n2 = x => Number(x).toFixed(2).replace(".", ",");
+const usd = x => x==null ? "–" : "$" + Math.round(x).toLocaleString("en-US");
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+try{ const t = localStorage.getItem("nhl-theme"); if(t) document.documentElement.dataset.theme = t; }catch(e){}
+$("#theme").onclick = () => {
+  const cur = document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  const nx = cur === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = nx;
+  try{ localStorage.setItem("nhl-theme", nx); }catch(e){}
+};
+$("#back").href = M.back;
+$("#sub").textContent = `Sezon ${M.season} · stan na ${M.date} · wygenerowano ${M.generated}`;
+$("#sims").textContent = M.sims.toLocaleString("pl-PL");
+$("#mgp").textContent = M.min_gp;
+$("#info").innerHTML = M.listed
+  ? `<b>${M.listed}</b> zawodników z Twojej listy (elc.csv) i <b>${R.length - M.listed}</b> kandydatów wybranych automatycznie.`
+  : `Plik <b>elc.csv</b> jest pusty – widzisz tylko <b>kandydatów</b> wybranych automatycznie (bez kwot bonusów). Wpisz do elc.csv zawodników z PuckPedii z kwotą bonusu za próg, a pojawi się filtr kwoty i oczekiwana wartość w $.`;
+
+[...new Set(R.map(r=>r.team))].sort().forEach(t => {
+  const o = document.createElement("option"); o.value = o.textContent = t; $("#team").appendChild(o);
+});
+$("#q").oninput = e => { st.q = e.target.value.toLowerCase(); render(); };
+$("#team").onchange = e => { st.team = e.target.value; render(); };
+$("#pos").onchange = e => { st.pos = e.target.value; render(); };
+$("#src").onchange = e => { st.src = e.target.value; render(); };
+$("#minb").onchange = e => { st.minb = +e.target.value; render(); };
+
+const probCell = p => `<div class="prob"><span class="bar"><i style="width:${Math.min(100,p*100)}%"></i></span><b>${pc(p)}</b></div>`;
+const thLbl = (k) => `F ${String(M.thresh.F[k]).replace(".",",")} / D ${String(M.thresh.D[k]).replace(".",",")}`;
+const C = [
+  {k:"name", t:"Zawodnik", l:true, v:r=>r.name, h:r=>
+    `<span class="name">${esc(r.name)}</span><span class="pos"> ${esc(r.pos)}${r.age!=null?" · "+r.age+" l.":""}</span>`
+    + (r.listed ? `<span class="chip ok">z listy</span>` : `<span class="chip cand">kandydat</span>`)
+    + (r.chase && r.chase.length ? `<span class="chip cand" title="w zasięgu progu w końcówce sezonu">🎯 ${r.chase.map(c=>`${c.need} ${c.lab} do ${c.th}`).join(", ")}</span>` : "")
+    + `<button class="tog ${OPEN.has(r.id)?"on":""}" data-id="${r.id}">Szczegóły ${OPEN.has(r.id)?"▾":"▸"}</button>`},
+  {k:"team", t:"Drużyna", l:true, v:r=>r.team, h:r=>`<b>${esc(r.team)}</b>`},
+  {k:"gp", t:"Mecze", sub:"zagrał / drużyna · zostało", v:r=>r.cur.gp, h:r=>`${r.cur.gp} / ${r.team_gp} <span class="muted">· ${r.remaining}</span>`},
+  {k:"now", t:"Teraz", sub:"G – A – PKT", v:r=>r.cur.p, h:r=>`${r.cur.g} – ${r.cur.a} – <b>${r.cur.p}</b>`},
+  {k:"proj", t:"Projekcja", sub:"G · PKT (80% zakres)", v:r=>r.proj.p, h:r=>
+    `${n1(r.proj.g)} G <span class="muted">(${r.p10.g}–${r.p90.g})</span> · <b>${n1(r.proj.p)}</b> <span class="muted">(${r.p10.p}–${r.p90.p})</span>`},
+  {k:"pg", t:"Gole", sub:thLbl("g"), v:r=>r.prob.g, h:r=>probCell(r.prob.g)},
+  {k:"pa", t:"Asysty", sub:thLbl("a"), v:r=>r.prob.a, h:r=>probCell(r.prob.a)},
+  {k:"pp", t:"Punkty", sub:thLbl("p"), v:r=>r.prob.p, h:r=>probCell(r.prob.p)},
+  {k:"pppg", t:"PKT na mecz", sub:thLbl("ppg"), v:r=>r.prob.ppg, h:r=>probCell(r.prob.ppg)},
+  {k:"toi", t:"Czas gry", sub:"miejsce w drużynie", v:r=>-(r.rank.toi_rank||99), h:r=> r.rank.toi_rank
+    ? `<span class="${r.toi_ok?"yes":""}">${r.rank.toi_rank}. z ${r.rank.toi_n}</span> <span class="muted">${n1(r.rank.toi)} min</span>` : "–"},
+  {k:"pm", t:"+/-", sub:"miejsce w drużynie", v:r=>-(r.rank.pm_rank||99), h:r=> r.rank.pm_rank
+    ? `<span class="${r.pm_ok?"yes":""}">${r.rank.pm_rank}.</span> <span class="muted">(${r.rank.pm>0?"+":""}${r.rank.pm})</span>` : "–"},
+  {k:"exp_hits", t:"Oczek. progów", sub:"z 4", v:r=>r.exp_hits, h:r=>`<b>${n2(r.exp_hits)}</b>`},
+  {k:"bonus", t:"Bonus / próg", v:r=>r.bonus||0, h:r=>usd(r.bonus)},
+  {k:"exp_usd", t:"Oczek. $", v:r=>r.exp_usd||0, h:r=>r.exp_usd==null?"–":`<b>${usd(r.exp_usd)}</b>`},
+];
+
+function detail(r){
+  const played = r.p_play * r.remaining;
+  const line = (lab, k, prob) => {
+    const need = r.need[k], th = r.th[k];
+    const per = played > 0 ? need / played : null;
+    const lam = r.lam[k];
+    const verdict = need === 0 ? `<span class="yes">osiągnięty</span>`
+      : per == null ? "brak meczów" : (lam >= per ? `<span class="yes">tempo wystarcza</span>` : `potrzeba ${n2(per/lam)}× szybszego tempa`);
+    return `<tr><td class="l">${lab}</td><td>${r.cur[k]}</td><td>${th}</td><td><b>${need}</b></td>`
+      + `<td>${per==null?"–":n2(per)}</td><td>${n2(lam)}</td><td class="l">${verdict}</td><td>${pc(prob)}</td></tr>`;
+  };
+  const ppgNow = r.cur.gp ? r.cur.p / r.cur.gp : 0;
+  return `<div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+    <table class="mini"><thead><tr><th class="l">Próg</th><th>Teraz</th><th>Cel</th><th>Brakuje</th>
+      <th>Potrzeba / mecz</th><th>Tempo modelu / mecz</th><th class="l">Ocena</th><th>Szansa</th></tr></thead><tbody>
+      ${line("Gole","g",r.prob.g)}${line("Asysty","a",r.prob.a)}${line("Punkty","p",r.prob.p)}
+      <tr><td class="l">PKT na mecz</td><td>${n2(ppgNow)}</td><td>${n2(r.th.ppg)}</td><td colspan="2" class="l muted">min. ${M.min_gp} meczów (proj. ${n1(r.proj.gp)})</td>
+        <td>${n2(r.lam.p)}</td><td class="l">${r.lam.p >= r.th.ppg ? '<span class="yes">tempo powyżej progu</span>' : "tempo poniżej progu"}</td><td>${pc(r.prob.ppg)}</td></tr>
+    </tbody></table>
+    <div class="muted" style="max-width:360px">
+      Drużynie zostało <b>${r.remaining}</b> meczów; model zakłada, że zagra w ok. <b>${Math.round(played)}</b>
+      (dotychczasowy udział ${pc(r.p_play)}). Oczekiwany czas gry ${n1(r.toi_exp)} min.
+      Wcześniejsze pełne sezony w NHL: ${r.prior}.${r.note ? `<br>Uwagi: ${esc(r.note)}` : ""}
+    </div></div>`;
+}
+
+function render(){
+  const sc = C.find(c=>c.k===st.sort) || C[C.length-3];
+  let rows = R.filter(r =>
+    (!st.team || r.team===st.team) && (!st.pos || r.posg===st.pos) &&
+    (!st.q || r.name.toLowerCase().includes(st.q)) &&
+    (!st.src || (st.src==="listed" ? r.listed : !r.listed)) &&
+    (!st.minb || (r.bonus||0) >= st.minb));
+  rows.sort((a,b)=>{ const x=sc.v(a), y=sc.v(b); return (x<y?-1:x>y?1:0)*st.dir; });
+  $("#t thead").innerHTML = "<tr><th class='l'>#</th>" + C.map(c =>
+    `<th class="${c.l?"l":""} ${c.k===sc.k?"sorted":""}" data-k="${c.k}">${esc(c.t)}${c.k===sc.k?(st.dir<0?" ↓":" ↑"):""}${c.sub?`<small>${esc(c.sub)}</small>`:""}</th>`).join("") + "</tr>";
+  $("#t thead").querySelectorAll("th[data-k]").forEach(th => th.onclick = () => {
+    if(st.sort===th.dataset.k) st.dir *= -1; else { st.sort = th.dataset.k; st.dir = (th.dataset.k==="name"||th.dataset.k==="team") ? 1 : -1; }
+    render();
+  });
+  $("#t tbody").innerHTML = rows.length ? rows.map((r,i) =>
+    `<tr><td class="l">${i+1}</td>` + C.map(c=>`<td class="${c.l?"l":""}">${c.h(r)}</td>`).join("") + "</tr>"
+    + (OPEN.has(r.id) ? `<tr class="detail"><td colspan="${C.length+1}">${detail(r)}</td></tr>` : "")
+  ).join("") : `<tr><td colspan="${C.length+1}" class="empty">${st.minb && !M.listed ? "Filtr kwoty działa tylko dla zawodników z elc.csv." : "Brak zawodników dla tych filtrów."}</td></tr>`;
+  $("#t tbody").querySelectorAll(".tog").forEach(b => b.onclick = () => {
+    const id = +b.dataset.id; OPEN.has(id) ? OPEN.delete(id) : OPEN.add(id); render();
+  });
+}
+render();
+</script>
+</body>
+</html>

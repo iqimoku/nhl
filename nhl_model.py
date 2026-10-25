@@ -184,6 +184,7 @@ def get_roster(http: Http, team: str, season: int | None):
                 "pos": p.get("positionCode", posg),
                 "posg": posg,
                 "team": team,
+                "birth": p.get("birthDate", ""),
             })
     return out
 
@@ -462,13 +463,15 @@ def write_csv(rows, path: Path):
             w.writerow([str(fn(r)).replace(".", ",") if isinstance(fn(r), float) else fn(r) for _, fn in CSV_COLS])
 
 
-def write_html(rows, games, day: dt.date, path: Path, root: str | None = None, csv_url: str | None = None):
+def write_html(rows, games, day: dt.date, path: Path, root: str | None = None, csv_url: str | None = None,
+               elc_url: str | None = None):
     """root – ścieżka do katalogu głównego strony (tryb GitHub Pages), None w trybie lokalnym."""
     tpl = (Path(__file__).with_name("report_template.html")).read_text(encoding="utf-8")
     season = season_of(day)
     meta = {
         "root": root,
         "csv": csv_url,
+        "elc": elc_url,
         "date": day.isoformat(),
         "generated": dt.datetime.now(TZ_PL).strftime("%Y-%m-%d %H:%M"),
         "seasons": [season_label(season_minus(season, k)) for k in range(len(SEASON_WEIGHTS))],
@@ -485,13 +488,15 @@ def write_html(rows, games, day: dt.date, path: Path, root: str | None = None, c
     path.write_text(tpl.replace("__DATA__", payload), encoding="utf-8")
 
 
-def write_site(rows, games, day: dt.date, site: Path):
+def write_site(rows, games, day: dt.date, site: Path, elc: bool = False):
     """Strona pod GitHub Pages: index.html = najnowszy dzień, d/RRRR-MM-DD.html = archiwum."""
     (site / "d").mkdir(parents=True, exist_ok=True)
     (site / ".nojekyll").touch()
     d = day.isoformat()
+    elc = elc or (site / "elc.html").exists()
     write_csv(rows, site / "d" / f"{d}.csv")
-    write_html(rows, games, day, site / "d" / f"{d}.html", root="../", csv_url=f"{d}.csv")
+    write_html(rows, games, day, site / "d" / f"{d}.html", root="../", csv_url=f"{d}.csv",
+               elc_url="../elc.html" if elc else None)
 
     days_path = site / "days.json"
     try:
@@ -503,7 +508,8 @@ def write_site(rows, games, day: dt.date, site: Path):
     days_path.write_text(json.dumps(days, indent=0), encoding="utf-8")
 
     if days[0]["date"] == d:
-        write_html(rows, games, day, site / "index.html", root="", csv_url=f"d/{d}.csv")
+        write_html(rows, games, day, site / "index.html", root="", csv_url=f"d/{d}.csv",
+                   elc_url="elc.html" if elc else None)
     return site / "d" / f"{d}.html"
 
 
@@ -580,7 +586,8 @@ def main(argv=None):
     ap.add_argument("--cache", default="cache", help="folder na pobrane dane")
     ap.add_argument("--workers", type=int, default=6, help="równoległe pobieranie (domyślnie 6)")
     ap.add_argument("--no-open", action="store_true", help="nie otwieraj raportu w przeglądarce")
-    ap.add_argument("--site", help="zapisz jako stronę GitHub Pages do podanego folderu (np. docs)")
+    ap.add_argument("--no-elc", action="store_true", help="pomiń stronę bonusów ELC")
+    ap.add_argument("--site",help="zapisz jako stronę GitHub Pages do podanego folderu (np. docs)")
     a = ap.parse_args(argv)
 
     base = Path(__file__).resolve().parent
@@ -595,22 +602,44 @@ def main(argv=None):
         return
 
     day = dt.date.fromisoformat(a.date) if a.date else dt.datetime.now(TZ_PL).date()
+    site = None
+    if a.site:
+        site = (base / a.site) if not Path(a.site).is_absolute() else Path(a.site)
+        site.mkdir(parents=True, exist_ok=True)
+
+    elc_ok, elc_rows = False, []
+    if not a.no_elc:
+        print("Bonusy ELC – szukam młodych zawodników i symuluję resztę sezonu...")
+        try:
+            import elc_model
+            elc_rows = elc_model.run(http, day, a.workers, base / "elc.csv")
+            elc_path = (site / "elc.html") if site else (out_dir / f"elc_{day}.html")
+            elc_model.write_page(elc_rows, day, elc_path, "index.html" if site else f"nhl_{day}.html")
+            print(f"Bonusy ELC: {len(elc_rows)} zawodników → {elc_path}")
+            elc_ok = True
+        except Exception as e:  # ELC nie może zablokować raportu dziennego
+            print(f"  ! Bonusy ELC pominięte: {e}", file=sys.stderr)
+
     print(f"NHL {day} – pobieram terminarz i dane...")
     rows, games, _ = analyse_day(http, day, a.workers)
     if not games:
         print("Brak meczów NHL (sezon zasadniczy / play-off) w tym dniu.")
         return
     print(f"Meczów: {len(games)}, zawodników: {len(rows)}")
+    if elc_rows:
+        import elc_model
+        elc_model.attach_to_daily(rows, elc_rows)
+        n_chase = sum(1 for r in rows if r.get("elc", {}).get("chase"))
+        print(f"Goniący bonus ELC w dzisiejszych meczach: {n_chase}")
 
-    if a.site:
-        site = (base / a.site) if not Path(a.site).is_absolute() else Path(a.site)
-        page = write_site(rows, games, day, site)
+    if site:
+        page = write_site(rows, games, day, site, elc=elc_ok)
         print(f"Strona zaktualizowana: {page}")
         return
 
     html_path = out_dir / f"nhl_{day}.html"
     csv_path = out_dir / f"nhl_{day}.csv"
-    write_html(rows, games, day, html_path, csv_url=csv_path.name)
+    write_html(rows, games, day, html_path, csv_url=csv_path.name, elc_url=f"elc_{day}.html" if elc_ok else None)
     write_csv(rows, csv_path)
     print(f"Raport: {html_path}\nCSV:    {csv_path}")
     if not a.no_open:

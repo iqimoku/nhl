@@ -11,6 +11,41 @@ Przy każdej szansie podany jest **kurs fair** (1 / szansa), który można poró
 
 Dane pochodzą z oficjalnego, darmowego API NHL (to samo źródło, z którego korzysta Yahoo). Klucz API nie jest potrzebny.
 
+Osobna strona **Bonusy ELC** (przycisk w prawym górnym rogu raportu) pokazuje młodych zawodników na kontraktach wejściowych i szansę, że do końca sezonu osiągną progi bonusów „A”. Opis jest w sekcji „Bonusy ELC” niżej.
+
+## Bonusy ELC
+
+Dla każdego zawodnika model symuluje 10 000 razy resztę sezonu. Bierze pod uwagę liczbę pozostałych meczów drużyny, dotychczasowy udział zawodnika w meczach, jego tempo G/A (z niepewnością) i oczekiwany czas gry. Wynik to szansa na każdy próg statystyczny:
+
+| | Gole | Asysty | Punkty | PKT na mecz (min. 42 mecze) |
+|---|---|---|---|---|
+| Napastnik | 20 | 35 | 60 | 0,73 |
+| Obrońca | 10 | 25 | 40 | 0,49 |
+
+Dodatkowo strona pokazuje bieżące miejsce zawodnika w drużynie pod względem czasu gry (próg: top 6 napastników albo top 4 obrońców) i w +/- (top 3). Po kliknięciu **Szczegóły** widać, ile zawodnikowi brakuje do każdego progu, jakie tempo na mecz jest do tego potrzebne i jakie tempo ma obecnie.
+
+**Kto jest na ELC?** API NHL nie zawiera kontraktów, dlatego są dwa źródła:
+
+- **kandydaci** są wybierani automatycznie: wiek do 24 lat i najwyżej 2 wcześniejsze sezony z co najmniej 10 meczami w NHL. To przybliżenie, więc kontrakt sprawdź na PuckPedii.
+- **z listy** to zawodnicy wpisani przez ciebie do pliku **`elc.csv`** w repozytorium. Tylko dla nich strona zna kwotę bonusu, pokazuje oczekiwaną wartość w $ i działa filtr „Bonus ≥ 150k $”.
+
+### Jak uzupełnić elc.csv (w przeglądarce)
+
+1. W repozytorium kliknij plik **elc.csv**, a potem ikonę ołówka (**Edit this file**).
+2. Pod nagłówkiem dopisuj zawodników, jeden w linii. Imię i nazwisko podaj tak, jak w raporcie, a kwotę bonusu za jeden próg weź z PuckPedii:
+   ```
+   zawodnik;bonus_za_prog_usd;uwagi
+   Jan Kowalski;150000;
+   Piotr Nowak;$212,500;
+   Adam Zieliński;150k;ostatni rok ELC
+   ```
+   Kwotę można zapisać jako `150000`, `$150,000` albo `150k`. Kolumna uwag jest opcjonalna.
+3. Kliknij **Commit changes**. Zmiana pojawi się na stronie przy następnym przebiegu automatu albo od razu po ręcznym **Run workflow**.
+
+Zawodnik z listy, który nie jest w tej chwili w składzie drużyny NHL (np. został zesłany do AHL), nie pojawi się na stronie, dopóki nie wróci do składu.
+
+Czego model nie liczy: progów przyznawanych w głosowaniu (All-Rookie Team, All-Star, nagrody) ani bonusów „B” (top 10 ligi).
+
 ## Wersja online (GitHub Pages) – zalecana
 
 Strona sama aktualizuje się codziennie przez GitHub Actions. Nic nie trzeba instalować.
@@ -74,7 +109,7 @@ Liczba goli, asyst czy strzałów zawodnika w meczu jest modelowana rozkładem P
 | Czas na lodzie | 60% średnia z ostatnich 10 meczów, 40% średnia ważona |
 | Obrona rywala | gole tracone (dla G/A/PKT) lub strzały dopuszczane (dla SOG) na tle średniej ligi; na początku sezonu mieszane z poprzednim sezonem |
 | Dom / wyjazd | ×1,03 / ×0,97 |
-| H2H | wyniki zawodnika przeciw temu rywalowi w porównaniu z tym, czego model by oczekiwał; mocno wygładzone i ograniczone do 0,80–1,25, bo to zwykle tylko kilka meczów |
+| H2H | wyniki zawodnika przeciw temu rywalowi z bieżącego i 5 poprzednich sezonów w porównaniu z tym, czego model by oczekiwał; mocno wygładzone i ograniczone do 0,80–1,25, bo to zwykle tylko kilka meczów |
 
 Szansa na co najmniej jedno zdarzenie wynosi P(≥1) = 1 − e^(−λ).
 
