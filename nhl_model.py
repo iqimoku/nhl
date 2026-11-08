@@ -33,6 +33,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import calib
+import goalies as goalie_mod
 
 try:
     import requests
@@ -50,6 +51,7 @@ STATS = "https://api.nhle.com/stats/rest/en"
 
 # ---------------------------------------------------------------- parametry modelu
 SEASON_WEIGHTS = [1.00, 0.70, 0.45, 0.30]   # tempo zawodnika: bieżący sezon, -1, -2, -3
+TEAM_H2H_SEASONS = 20                        # H2H drużyn: bieżący + 19 poprzednich sezonów
 H2H_SEASONS = 6                              # historia przeciw rywalowi: bieżący + 5 poprzednich sezonów
 RATE_SEASONS = len(SEASON_WEIGHTS)
 FORM_GAMES = 10                              # ostatnie N meczów dostaje dodatkową wagę
@@ -70,6 +72,9 @@ SH_PRIOR = {"F": 0.105, "D": 0.050}          # typowa skuteczność strzałów w
 SH_PRIOR_SHOTS = 120                         # "wirtualne" strzały do wygładzenia skuteczności
 LUCK_GAMES = 15                              # okno wskaźnika pech / fart
 CALIB = None                                 # kalibracja z backtestu (calibration.json), ładowana w main()
+KEEP_DAYS = 3                                # archiwum raportów: dziś + 2 dni wstecz
+LAST_GOALIES = {}
+LAST_TEAM_H2H = {}                           # H2H drużyn dla meczów dnia (do raportu)                            # bramkarze z ostatniego analyse_day (do raportu)
 
 
 # ---------------------------------------------------------------- HTTP + cache
@@ -178,6 +183,45 @@ def get_schedule(http: Http, day: dt.date):
     return []
 
 
+# przeprowadzki klubów: (do sezonu – wyłącznie, dawny skrót), od najstarszego
+FRANCHISE_ALIASES = {
+    "UTA": [(20142015, "PHX"), (20242025, "ARI")],   # Phoenix Coyotes -> Arizona Coyotes -> Utah
+    "WPG": [(20112012, "ATL")],                      # Atlanta Thrashers -> Winnipeg Jets
+}
+
+
+def team_abbr_in(team: str, season: int) -> str:
+    for until, old in FRANCHISE_ALIASES.get(team, []):
+        if season < until:
+            return old
+    return team
+
+
+def get_team_h2h(http: Http, home: str, away: str, seasons: list[int], live_season: int, day: dt.date):
+    """Wyniki meczów home–away (sezon zasadniczy) z kilku sezonów: [data, gospodarz, gość, gole gosp., gole gościa, REG/OT/SO]."""
+    out, cutoff = [], day.isoformat()
+    for s in seasons:
+        ttl = 6.0 if s >= live_season else None
+        h_ab, a_ab = team_abbr_in(home, s), team_abbr_in(away, s)   # np. Utah grało wcześniej jako Arizona
+        try:
+            data = http.get(f"{API}/club-schedule-season/{h_ab}/{s}", ttl_hours=ttl) or {}
+        except Exception:
+            continue
+        for g in data.get("games", []) or []:
+            if g.get("gameType") != 2 or g.get("gameState") not in ("OFF", "FINAL"):
+                continue
+            h, a = g.get("homeTeam", {}), g.get("awayTeam", {})
+            if {h.get("abbrev"), a.get("abbrev")} != {h_ab, a_ab} or g.get("gameDate", "") >= cutoff:
+                continue
+            if h.get("score") is None or a.get("score") is None:
+                continue
+            per = ((g.get("gameOutcome") or {}).get("lastPeriodType") or "REG").upper()
+            back = {h_ab: home, a_ab: away}          # zapisujemy pod dzisiejszymi skrótami
+            out.append([g["gameDate"], back[h["abbrev"]], back[a["abbrev"]], int(h["score"]), int(a["score"]), per])
+    out.sort(key=lambda x: x[0], reverse=True)
+    return out
+
+
 def get_roster(http: Http, team: str, season: int | None):
     path = "current" if season is None else str(season)
     data = http.get(f"{API}/roster/{team}/{path}", ttl_hours=6.0) or {}
@@ -277,7 +321,7 @@ def get_team_factors(http: Http, as_of: dt.date, season: int):
 
 
 # ---------------------------------------------------------------- model
-def project(games, as_of: dt.date, posg: str, opp: str, is_home: bool, opp_f: dict):
+def project(games, as_of: dt.date, posg: str, opp: str, is_home: bool, opp_f: dict, goalie_rel: float = 1.0):
     cutoff = as_of.isoformat()
     hist_all = [g for g in games if g["date"] < cutoff]            # do H2H (do 6 sezonów)
     hist = [g for g in hist_all if g["sidx"] < RATE_SEASONS]       # do tempa i czasu gry
@@ -323,9 +367,11 @@ def project(games, as_of: dt.date, posg: str, opp: str, is_home: bool, opp_f: di
     ha = HOME_FACTOR[is_home]
     res = {}
     for k in MARKETS:
-        of = opp_f.get("sa" if k == "s" else "ga", 1.0)
-        lam = r60[k] / 60 * exp_toi * of * ha * h2h[k]
-        res[k] = {"lam": lam, "r60": r60[k], "h2h_f": h2h[k], "opp_f": of}
+        of_ng = opp_f.get("sa" if k == "s" else "ga", 1.0)      # obrona rywala ze „średnim” bramkarzem
+        gr = 1.0 if k == "s" else goalie_rel                    # bramkarz nie zmienia liczby strzałów
+        lam_ng = r60[k] / 60 * exp_toi * of_ng * ha * h2h[k]
+        res[k] = {"lam": lam_ng * gr, "lam_ng": lam_ng, "r60": r60[k], "h2h_f": h2h[k],
+                  "opp_f": of_ng * gr, "opp_ng": of_ng}
     res["g"]["sh"] = sh
     res["g"]["r60_raw"] = r60_g_raw
     return res, hist, vs, exp_toi
@@ -392,11 +438,12 @@ def form_stats(games):
     return out
 
 
-def build_row(pl, game, games, as_of, team_dates, factors, season):
+def build_row(pl, game, games, as_of, team_dates, factors, season, gk=None):
     team, home_team, away_team = pl["team"], game["homeTeam"]["abbrev"], game["awayTeam"]["abbrev"]
     is_home = team == home_team
     opp = away_team if is_home else home_team
-    proj, hist, vs, exp_toi = project(games, as_of, pl["posg"], opp, is_home, factors.get(opp, {}))
+    g_rel, g_opp = goalie_mod.rel_of((gk or {}).get(opp))
+    proj, hist, vs, exp_toi = project(games, as_of, pl["posg"], opp, is_home, factors.get(opp, {}), g_rel)
 
     cur = [g for g in hist if g["sidx"] == 0]
     last = cur[-1]["date"] if cur else ""
@@ -412,8 +459,9 @@ def build_row(pl, game, games, as_of, team_dates, factors, season):
     for k in MARKETS:
         lam_raw = proj[k]["lam"]
         lam = calib.apply(CALIB, k, lam_raw)
-        e = {"lam": round(lam, 3), "lam_raw": round(lam_raw, 4), "r60": round(proj[k]["r60"], 2),
-             "h2h_f": round(proj[k]["h2h_f"], 3), "opp_f": round(proj[k]["opp_f"], 3)}
+        e = {"lam": round(lam, 3), "lam_raw": round(lam_raw, 4), "lam_ng": round(proj[k]["lam_ng"], 4),
+             "r60": round(proj[k]["r60"], 2), "h2h_f": round(proj[k]["h2h_f"], 3),
+             "opp_f": round(proj[k]["opp_f"], 3), "opp_ng": round(proj[k]["opp_ng"], 4)}
         if k == "s":
             r_nb = CALIB["s"].get("r") if CALIB and "s" in CALIB else None
             for t in (1, 2, 3, 4, 5):
@@ -445,6 +493,8 @@ def build_row(pl, game, games, as_of, team_dates, factors, season):
                     for g in reversed(hist[-FORM_GAMES:])],
         "sh": round(sh, 4), "streak": streaks(all_hist), "luck": luck(all_hist, sh),
         "months": monthly(all_hist),
+        "og": ({"id": g_opp["id"], "name": g_opp["name"], "sv": g_opp["sv"], "rel": g_rel,
+                "how": (gk or {}).get(opp, {}).get("how", "")} if g_opp else None),
         "m": m, "season": season,
     }
 
@@ -490,7 +540,30 @@ def analyse_day(http: Http, day: dt.date, workers: int, historical_rosters=False
             if gm["sidx"] == 0 and gm["team"] == p["team"] and gm["date"] < cutoff:
                 team_dates.setdefault(p["team"], set()).add(gm["date"])
 
-    rows = [build_row(p, g, logs.get(p["id"], []), day, team_dates, factors, season) for p, g in players]
+    gk = {}
+    for g in games:
+        for side in ("awayTeam", "homeTeam"):
+            team = g[side]["abbrev"]
+            try:
+                gk[team] = goalie_mod.team_info(http, API, team, day, seasons, live, historical_rosters)
+            except Exception as e:
+                gk[team] = None
+                if not quiet:
+                    print(f"  ! bramkarze {team}: {e}", file=sys.stderr)
+    global LAST_GOALIES, LAST_TEAM_H2H
+    LAST_GOALIES = gk
+    LAST_TEAM_H2H = {}
+    if not historical_rosters:  # do backtestu niepotrzebne
+        for g in games:
+            try:
+                LAST_TEAM_H2H[g["id"]] = get_team_h2h(http, g["homeTeam"]["abbrev"], g["awayTeam"]["abbrev"],
+                                                      [season_minus(season, k) for k in range(TEAM_H2H_SEASONS)],
+                                                      live, day)
+            except Exception as e:
+                if not quiet:
+                    print(f"  ! H2H drużyn {g['id']}: {e}", file=sys.stderr)
+
+    rows = [build_row(p, g, logs.get(p["id"], []), day, team_dates, factors, season, gk) for p, g in players]
     return rows, games, logs
 
 
@@ -500,6 +573,9 @@ CSV_COLS = [
     ("Drużyna", lambda r: r["team"]), ("Rywal", lambda r: r["opp"]), ("Dom", lambda r: "tak" if r["home"] else "nie"),
     ("Poz", lambda r: r["pos"]), ("Status", lambda r: r["status"]), ("Mecze w próbie", lambda r: r["gp"]),
     ("Oczek. TOI", lambda r: r["toi"]),
+    ("Bramkarz rywala", lambda r: (r["og"] or {}).get("name", "")),
+    ("Bramkarz – skąd", lambda r: (r["og"] or {}).get("how", "")),
+    ("Bramkarz ×", lambda r: (r["og"] or {}).get("rel", "")),
     ("Gol %", lambda r: pct(r["m"]["g"]["p1"])), ("Gol kurs fair", lambda r: fair(r["m"]["g"]["p1"])),
     ("Gol oczek.", lambda r: r["m"]["g"]["lam"]),
     ("Asysta %", lambda r: pct(r["m"]["a"]["p1"])), ("Asysta kurs fair", lambda r: fair(r["m"]["a"]["p1"])),
@@ -558,6 +634,11 @@ def write_html(rows, games, day: dt.date, path: Path, root: str | None = None, c
         "seasons": [season_label(season_minus(season, k)) for k in range(len(SEASON_WEIGHTS))],
         "weights": SEASON_WEIGHTS,
         "calib": (CALIB or {}).get("_info"),
+        "calp": {k: v for k, v in (CALIB or {}).items() if k != "_info"} or None,
+        "goalies": {t: v for t, v in LAST_GOALIES.items() if v},
+        "th2h": {str(k): v for k, v in LAST_TEAM_H2H.items()},
+        "th2h_from": season_label(season_minus(season, TEAM_H2H_SEASONS - 1)),
+        "th2h_n": TEAM_H2H_SEASONS,
         "h2h_from": season_label(season_minus(season, H2H_SEASONS - 1)),
         "games": [{
             "id": g["id"], "label": f'{g["awayTeam"]["abbrev"]} @ {g["homeTeam"]["abbrev"]}',
@@ -587,6 +668,13 @@ def write_site(rows, games, day: dt.date, site: Path, elc: bool = False):
         days = []
     days = [x for x in days if x.get("date") != d] + [{"date": d, "games": len(games)}]
     days.sort(key=lambda x: x["date"], reverse=True)
+    # archiwum: zostaw najnowszy dzień + KEEP_DAYS-1 poprzednich, starsze pliki usuń (repozytorium nie puchnie)
+    for old in days[KEEP_DAYS:]:
+        for ext in ("html", "csv"):
+            f = site / "d" / f"{old['date']}.{ext}"
+            if f.exists():
+                f.unlink()
+    days = days[:KEEP_DAYS]
     days_path.write_text(json.dumps(days, indent=0), encoding="utf-8")
 
     if days[0]["date"] == d:
