@@ -100,6 +100,47 @@ ul.why.minus li::marker{content:"! ";color:var(--bad)}
 .trow .tn{flex:1;min-width:0}
 .trow .tn small{display:block;color:var(--muted);font-size:11px}
 .trow b{flex:none}
+.plink{color:var(--ink);text-decoration:none;border-bottom:1px dashed var(--accent);cursor:pointer}
+.plink:hover{color:var(--accent)}
+.qh2h{margin-top:8px;padding:6px 9px;border-radius:8px;background:var(--bg);font-size:12.5px;line-height:1.5}
+.modal{position:fixed;inset:0;background:rgba(10,12,16,.55);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow-y:auto}
+.modal[hidden]{display:none}
+.mbox{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:14px;width:min(1200px,100%);padding:16px 4px 8px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.mclose{position:absolute;top:10px;right:12px;font:inherit;font-size:16px;border:1px solid var(--line);background:var(--panel);color:var(--muted);border-radius:8px;width:32px;height:32px;cursor:pointer}
+.mhead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;padding:0 54px 4px 14px}
+.mprobs{display:flex;gap:16px;flex-wrap:wrap}
+.mprobs div{text-align:right}
+.mprobs small{display:block;color:var(--muted);font-size:11px}
+.mprobs b{font-size:17px}
+.modal .dwrap{position:static;width:auto}
+.modal table.mini th,.modal table.mini td{padding:4px 6px}
+.controls label{flex-wrap:wrap;max-width:100%;min-width:0}
+.controls select{max-width:100%;min-width:0}
+.days{display:flex;gap:4px}
+.dbtn{display:block;text-align:center;text-decoration:none;color:var(--ink);border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:3px 9px;line-height:1.2}
+.dbtn small{display:block;font-size:10px;color:var(--muted)}
+.dbtn b{font-size:12px}
+.dbtn.on{border-color:var(--accent);background:var(--accent-soft)}
+.th2hlink{font-size:12px;margin-left:auto;white-space:nowrap}
+.monchk{font-size:12px;font-weight:400;color:var(--muted);margin-left:10px;white-space:nowrap}
+.thctl{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:10px 14px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.segb{font:inherit;font-size:12.5px;border:0;background:var(--panel);color:var(--muted);padding:5px 10px;cursor:pointer;border-left:1px solid var(--line)}
+.segb:first-child{border-left:0}
+.segb.on{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.thgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;padding:0 14px 12px}
+.thcard{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px}
+.thbig{font-size:26px;font-weight:700;margin:2px 0}
+.gbar{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:0 0 14px;font-size:13px}
+.gbar summary{cursor:pointer}
+.grow{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
+.grow:first-child{border-top:0;margin-top:6px}
+.gtime{color:var(--muted);font-size:12px;width:42px}
+.gsel{display:flex;align-items:center;gap:6px;min-width:0;max-width:100%}
+.gsel select{font:inherit;font-size:12.5px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:3px 6px;max-width:min(300px,60vw);min-width:0}
+.gman{color:var(--accent)} .greset{font-size:11px;color:var(--muted)}
+.gb2b{font-size:10px;font-weight:700;padding:1px 5px;border-radius:5px;background:var(--warn-soft);color:var(--warn)}
+.gk{font-size:11.5px;color:var(--muted)} .gk.up{color:var(--good)} .gk.down{color:var(--bad)}
 .dwarn{flex-basis:100%;font-size:12.5px;padding:8px 12px;border-radius:8px;background:var(--warn-soft);color:var(--warn)}
 .tog{font:inherit;font-size:11px;font-weight:600;margin-left:8px;padding:2px 7px;border-radius:6px;cursor:pointer;
   border:1px solid var(--line);background:var(--panel);color:var(--accent)}
@@ -141,7 +182,7 @@ table.mini tr.sum + tr.sum td{border-top:1px solid var(--line)}
     <h1>NHL · szanse zawodników</h1>
     <span class="sub" id="sub"></span>
     <div class="nav">
-      <select id="day" hidden aria-label="Dzień"></select>
+      <div id="days" class="days" hidden></div>
       <a id="elcl" class="btn" hidden>Bonusy ELC</a>
       <a id="csv" class="btn" hidden download>CSV</a>
       <button class="btn" id="theme">Motyw</button>
@@ -149,6 +190,7 @@ table.mini tr.sum + tr.sum td{border-top:1px solid var(--line)}
   </header>
 
   <div class="games" id="games"></div>
+  <details class="gbar" id="gbarw" open hidden><summary>🥅 <b>Bramkarze</b> <span class="match" id="gbarsum"></span></summary><div id="gbar"></div></details>
 
   <div class="tabs" id="tabs">
     <button class="tab on" data-m="g">Gole</button>
@@ -214,6 +256,7 @@ table.mini tr.sum + tr.sum td{border-top:1px solid var(--line)}
       <li><b>Oczek.</b> – oczekiwana liczba zdarzeń. <b>Na 60</b> – tempo zawodnika na 60 min gry po wygładzeniu (sezony: <span id="seas"></span>).</li>
       <li><b>TOI</b> – oczekiwany czas na lodzie (60% ostatnie 10 meczów, 40% średnia ważona).</li>
       <li><b>Rywal ×</b> – obrona rywala vs średnia ligi (1,10 = traci o 10% więcej). <b>Forma 10 / H2H</b> – np. „6 G · 6 m · gol w 3” = 6 goli w 6 meczach, gol padł w 3 z nich (przy strzałach: średnia na mecz i w ilu meczach było 3+). <b>Dom / wyjazd</b> – ten sam H2H rozbity na mecze u siebie (🏠) i na wyjeździe (✈); pogrubiony jest wariant zgodny z dzisiejszym meczem. <b>H2H</b> obejmuje wszystkie mecze zawodnika przeciw temu rywalowi od sezonu <span id="h2hfrom"></span> (bieżący + 5 poprzednich, sezon zasadniczy). <b>H2H ×</b> – wynikająca z tego korekta (ograniczona do 0,80–1,25, bo próba jest mała).</li>
+      <li><b>Bramkarze</b> – API NHL nie podaje potwierdzonego bramkarza przed meczem, więc model go <b>przewiduje</b> (najwięcej startów w ostatnich 10 meczach; przy meczu dzień po dniu – zmiennik). Gdy znasz potwierdzonego (zwykle ok. 17–19 czasu PL), wybierz go w pasku „Bramkarze” – gole, asysty i punkty przeliczą się od razu, także w Typach dnia. Siła bramkarza = skuteczność obron z 3 sezonów, wygładzona; „×1,10” = rywale strzelają mu ok. 10% więcej niż średniemu bramkarzowi tej drużyny. „?” przy nazwisku = przewidywany, „✎” = wybrany ręcznie.</li>
       <li><b>Kalibracja</b> – procenty są poprawione na podstawie backtestu (plik calibration.json), tak aby prognoza 30% sprawdzała się w ok. 30% przypadków. Strzały liczone są rozkładem o większym rozrzucie niż Poisson (ujemny dwumianowy), bo liczba strzałów waha się bardziej, niż zakłada Poisson – stąd niższe, uczciwsze szanse na 3+ i 4+. Informacja o kalibracji jest w nagłówku strony.</li>
       <li><b>Gole w modelu</b> liczone są w 70% jako strzały na 60 min × skuteczność z kariery, w 30% z samych goli. Dzięki temu zawodnik, który strzela dużo, a ostatnio „nie wpada”, dostaje uczciwie wyższą szansę.</li>
       <li><b>Pech/fart</b> (zakładka Gole) – gole w ostatnich 15 meczach minus gole oczekiwane z jego strzałów. Ujemny = pech (strzela, nie wpada), dodatni = fart. <b>Seria bez …</b> – ile meczów z rzędu bez zdarzenia (w nawiasie rekord w dostępnej historii); pogrubiona, gdy zbliża się do rekordu. Serie to podgląd – <u>nie</u> zmieniają procentów; czy warto je grać, sprawdza backtest.</li>
@@ -250,17 +293,81 @@ if(M.csv){ const a = $("#csv"); a.href = M.csv; a.hidden = false; }
 if(M.elc){ const a = $("#elcl"); a.href = M.elc; a.hidden = false; }
 if(M.root !== null && M.root !== undefined){
   fetch(M.root + "days.json", {cache:"no-store"}).then(r => r.json()).then(list => {
-    const s = $("#day");
-    list.forEach(d => {
-      const o = document.createElement("option");
-      o.value = d.date; o.textContent = `${d.date} · ${d.games} mecz.`;
-      if(d.date === M.date) o.selected = true;
-      s.appendChild(o);
-    });
-    if(list.length > 1){ s.hidden = false; }
-    s.onchange = () => { location.href = M.root + "d/" + s.value + ".html"; };
+    list = list.slice(0, 3);                       // dziś + maks. 2 dni wstecz
+    if(list.length < 2) return;
+    const WD = ["niedz.","pon.","wt.","śr.","czw.","pt.","sob."];
+    const lab = (d, i) => {
+      const dt = new Date(d.date + "T12:00:00");
+      const head = i === 0 ? "Najnowszy" : i === 1 ? "Dzień wcześniej" : "2 dni wcześniej";
+      return `<small>${head}</small><b>${WD[dt.getDay()]} ${d.date.slice(8,10)}.${d.date.slice(5,7)}</b>`;
+    };
+    $("#days").innerHTML = list.map((d, i) =>
+      `<a class="dbtn ${d.date === M.date ? "on" : ""}" href="${i === 0 ? M.root + "index.html" : M.root + "d/" + d.date + ".html"}" title="${d.games} meczów">${lab(d, i)}</a>`).join("");
+    $("#days").hidden = false;
   }).catch(() => {});
 }
+
+// ======================= BRAMKARZE =======================
+const GK = M.goalies || {};
+const gKey = t => `nhl-g|${M.date}|${t}`;
+const svf = v => v == null ? "–" : Number(v).toFixed(3).replace(/^0/, "");
+function selGoalie(team){
+  const G = GK[team]; if(!G) return null;
+  let id = null;
+  try{ id = +localStorage.getItem(gKey(team)) || null; }catch(e){}
+  const chosen = id ? G.list.find(x => x.id === id) : null;
+  const g = chosen || G.list.find(x => x.id === G.starter) || G.list[0];
+  return {g, manual: !!chosen && chosen.id !== G.starter};
+}
+function calLam(k, l){ const c = M.calp && M.calp[k]; return c ? c.a * Math.pow(Math.max(l, 1e-6), c.b) : l; }
+function applyGoalies(){
+  R.forEach(r => {
+    const sel = selGoalie(r.opp); if(!sel || !sel.g) return;
+    const rel = sel.g.rel;
+    ["g","a","p"].forEach(k => {
+      const m = r.m[k]; if(m.lam_ng == null) return;
+      const lam = calLam(k, m.lam_ng * rel);
+      m.lam = lam; m.p1 = 1 - Math.exp(-lam); m.p2 = 1 - Math.exp(-lam) * (1 + lam);
+      m.opp_f = m.opp_ng * rel;
+    });
+    r.og = {id: sel.g.id, name: sel.g.name, sv: sel.g.sv, rel, manual: sel.manual,
+            how: sel.manual ? "wybrany ręcznie" : GK[r.opp].how};
+  });
+}
+function gOpt(G, g){
+  const mark = g.id === G.starter ? (G.how.startsWith("faktyczny") ? "✓ " : "★ ") : "";
+  return `${mark}${g.name} ${svf(g.sv)} (${g.starts10}/10)`;
+}
+function renderGbar(){
+  const list = M.games.filter(g => !st.game || String(g.id) === st.game);
+  const any = list.some(g => GK[g.label.split(" @ ")[0]] || GK[g.label.split(" @ ")[1]]);
+  $("#gbarw").hidden = !Object.keys(GK).length;
+  $("#gbarsum").textContent = "– ★ przewidywany starter, (x/10) starty w ost. 10 meczach. Gdy znasz potwierdzonego, zmień go tutaj – procenty przeliczą się od razu.";
+  $("#gbar").innerHTML = any ? list.map(g => {
+    const [aw, hm] = g.label.split(" @ ");
+    const one = t => {
+      const G = GK[t]; if(!G) return `<span class="match">${esc(t)}: brak danych</span>`;
+      const sel = selGoalie(t);
+      return `<label class="gsel"><b>${esc(t)}</b>
+        <select data-team="${esc(t)}">${G.list.map(x => `<option value="${x.id}" ${sel.g && sel.g.id === x.id ? "selected" : ""}>${esc(gOpt(G, x))}</option>`).join("")}</select>
+        ${sel.manual ? `<span class="gman" title="Wybrany ręcznie">✎</span> <a href="#" class="greset" data-team="${esc(t)}">przywróć</a>` : ""}
+        ${G.b2b ? `<span class="gb2b" title="Drużyna grała wczoraj">B2B</span>` : ""}</label>`;
+    };
+    return `<div class="grow"><span class="gtime">${esc(g.time)}</span>${one(aw)}<span class="match">@</span>${one(hm)}`
+      + `<a href="#" class="th2hlink" data-g="${g.id}" title="Wyniki meczów tych drużyn">⚔ H2H drużyn</a></div>`;
+  }).join("") : `<p class="match">Brak danych o bramkarzach.</p>`;
+  $("#gbar").querySelectorAll("select").forEach(el => el.onchange = () => {
+    const t = el.dataset.team, id = +el.value;
+    try{ id === GK[t].starter ? localStorage.removeItem(gKey(t)) : localStorage.setItem(gKey(t), id); }catch(e){}
+    applyGoalies(); renderGbar(); render();
+  });
+  $("#gbar").querySelectorAll(".greset").forEach(a => a.onclick = e => {
+    e.preventDefault();
+    try{ localStorage.removeItem(gKey(a.dataset.team)); }catch(e){}
+    applyGoalies(); renderGbar(); render();
+  });
+}
+applyGoalies();
 
 $("#sub").textContent = `Mecze z dnia ${M.date} · ${M.games.length} spotkań · wygenerowano ${M.generated}`
   + (M.calib ? ` · skalibrowany (backtest ${M.calib.od} → ${M.calib.do}, n=${Number(M.calib.n).toLocaleString("pl-PL")})` : " · bez kalibracji");
@@ -272,7 +379,7 @@ function chip(id, top, label){
   const b = document.createElement("button");
   b.className = "chip" + (st.game===id ? " on" : "");
   b.innerHTML = `<small>${esc(top)}</small><b>${esc(label)}</b>`;
-  b.onclick = () => { st.game = id; renderChips(); render(); };
+  b.onclick = () => { st.game = id; renderChips(); renderGbar(); render(); };
   return b;
 }
 function renderChips(){
@@ -343,7 +450,8 @@ function cols(){
   const m = st.m, L = LBL[m];
   const base = [
     {k:"name", t:"Zawodnik", l:true, v:r=>r.name, h:r=>`<span class="name">${esc(r.name)}</span><span class="pos">${esc(r.pos)}${r.num?" #"+r.num:""}</span><button class="tog ${OPEN.has(r.id)?"on":""}" data-id="${r.id}">H2H ${OPEN.has(r.id)?"▾":"▸"}</button>${elcBadge(r)}${histNote(r)}${droughtNote(r)}${r.inactive?`<span class="badge">${esc(r.status)}</span>`:""}`},
-    {k:"match", t:"Mecz", l:true, v:r=>r.game, h:r=>`<b>${esc(r.team)}</b> <span class="match">${r.home?"vs":"@"} ${esc(r.opp)} · ${esc(r.time)}</span>`},
+    {k:"match", t:"Mecz", l:true, v:r=>r.game, h:r=>`<b>${esc(r.team)}</b> <span class="match">${r.home?"vs":"@"} ${esc(r.opp)} · ${esc(r.time)}</span>`
+      + (r.og ? `<br><span class="gk ${r.og.rel>=1.06?"up":r.og.rel<=0.94?"down":""}" title="Bramkarz rywala (${esc(r.og.how)}); × ${n2(r.og.rel)} do goli względem ich średniego bramkarza">🥅 ${esc(r.og.name)} ${svf(r.og.sv)}${r.og.manual?" ✎":r.og.how.startsWith("faktyczny")?"":" ?"}</span>` : "")},
   ];
   const probCell = p => `<div class="prob"><span class="bar"><i style="width:${Math.min(100,p*100)}%"></i></span><b>${pc(p)}</b></div>`;
   const HIT = {g:"gol", a:"asysta", p:"punkt", s:"3+"};
@@ -607,7 +715,9 @@ function monthsBox(r){
 }
 function detail(r){
   return `<div class="dwrap"><div class="dgrid">
-    <div class="dbox"><h4>H2H przeciw ${esc(r.opp)} <span>· od sezonu ${esc(M.h2h_from||"")}, sezon zasadniczy</span></h4><div class="mscroll">${logTable(r.h2h_log, r.home)}</div></div>
+    <div class="dbox h2hwrap" data-id="${r.id}"><h4>H2H przeciw ${esc(r.opp)} <span>· od sezonu ${esc(M.h2h_from||"")}, sezon zasadniczy</span>
+      <label class="monchk"><input type="checkbox" class="h2hmon"> tylko ${esc(MON_FULL[CUR_MONTH] || "ten miesiąc")}</label></h4>
+      <div class="mscroll">${logTable(r.h2h_log, r.home)}</div></div>
     <div class="dbox"><h4>Ostatnie 10 meczów <span>· forma</span></h4><div class="mscroll">${logTable(r.f10_log)}</div>
       <div class="full"><h4>Miesiące w karierze <span>· G–A (mecze), wszystkie rywale</span></h4><div class="mscroll">${monthsBox(r)}</div></div>
     </div>
@@ -636,7 +746,9 @@ function reasons(r, k){
   if(k === "g" && r.luck && r.luck.diff <= -1.5) plus.push(`pech na strzałach (${n2(r.luck.diff,1)} G vs oczek.) – już w %`);
   if(isChasing(r)) plus.push("goni bonus ELC 🎯");
   if(r.home) plus.push("u siebie");
+  if(k !== "s" && r.og && r.og.rel >= 1.06) plus.push(`słabszy bramkarz rywala: ${r.og.name} (${svf(r.og.sv)}, ×${n2(r.og.rel)})`);
   // ---- uwaga
+  if(k !== "s" && r.og && r.og.rel <= 0.94) minus.push(`mocny bramkarz rywala: ${r.og.name} (${svf(r.og.sv)}, ×${n2(r.og.rel)})`);
   if(r.inactive) minus.push(r.status);
   if(t && t.diff <= -1.5) minus.push(`obcięte minuty (${n2(t.diff,1)} min) – możliwa utrata roli`);
   if((sk.p||0) >= 13) minus.push(`${sk.p} m. bez punktu (backtest: tacy punktują rzadziej)`);
@@ -664,10 +776,11 @@ function pickCard(r, k, why){
   const mk = TOP_MK[k], p = mk.p(r), o = getOdds(r.id, k);
   return `<div class="pick">
     <div class="pick-h">
-      <div><span class="name">${esc(r.name)}</span><span class="pos"> ${esc(r.pos)}</span>
+      <div><a href="#" class="plink name" data-id="${r.id}" title="Pokaż H2H, formę i miesiące">${esc(r.name)} ↗</a><span class="pos"> ${esc(r.pos)}</span>
         <div class="match"><b>${esc(r.team)}</b> ${r.home?"vs":"@"} ${esc(r.opp)} · ${esc(r.time)}</div></div>
       <div class="pick-p"><div class="mk">${mk.name}</div><b>${pc(p)}</b><div class="match">kurs fair ${fair(p)}</div></div>
     </div>
+    ${quickH2H(r, k)}
     ${why.plus.length ? `<ul class="why plus">${why.plus.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>` : ""}
     ${why.minus.length ? `<ul class="why minus">${why.minus.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>` : ""}
     <div class="pick-odds">Kurs bukmachera (${mk.odds}):
@@ -676,6 +789,124 @@ function pickCard(r, k, why){
     </div>
   </div>`;
 }
+
+function quickH2H(r, k){
+  const h = r.h2h || {};
+  if(!h.gp) return `<div class="qh2h"><b>H2H vs ${esc(r.opp)}:</b> brak meczów</div>`;
+  const v = venueStats(r, r.home);
+  const venue = r.home ? "🏠 u siebie" : "✈ na wyjeździe";
+  const main = k === "s"
+    ? `${n2(h.s / h.gp, 1)} SOG/m · 3+ w ${h.hs} z ${h.gp}`
+    : `${h.g} G · ${h.a} A w ${h.gp} m (gol w ${h.hg}, punkt w ${h.hp})`;
+  const ven = !v.gp ? `${venue}: brak` : (k === "s"
+    ? `${venue}: ${n2(v.s / v.gp, 1)} SOG/m`
+    : `${venue}: ${v.g} G · ${v.a} A w ${v.gp} m`);
+  const gk = r.og ? `<br>🥅 <b>${esc(r.og.name)}</b> ${svf(r.og.sv)} <span class="match">· ${esc(r.og.how)}</span>` : "";
+  return `<div class="qh2h"><b>H2H vs ${esc(r.opp)}:</b> ${main}<br><span class="match">dziś ${ven}</span>${gk}</div>`;
+}
+function openPlayer(id){
+  const r = R.find(x => x.id === id);
+  if(!r) return;
+  const P = [["Gol", r.m.g.p1], ["Asysta", r.m.a.p1], ["Punkt", r.m.p.p1], ["3+ SOG", r.m.s.p3]];
+  $("#mbody").innerHTML = `
+    <div class="mhead">
+      <div><span class="name" style="font-size:18px">${esc(r.name)}</span><span class="pos"> ${esc(r.pos)}${r.num?" #"+r.num:""}</span>
+        <div class="match"><b>${esc(r.team)}</b> ${r.home?"vs":"@"} ${esc(r.opp)} · ${esc(r.time)} · TOI ${n2(r.toi,1)} min</div>
+        <div class="match"><a href="#" class="th2hlink" data-g="${r.gameId}">⚔ H2H drużyn ${esc(r.game)}</a></div>
+        ${r.og ? `<div class="match">🥅 bramkarz rywala: <b>${esc(r.og.name)}</b> ${svf(r.og.sv)} (×${n2(r.og.rel)}) · ${esc(r.og.how)}</div>` : ""}</div>
+      <div class="mprobs">${P.map(([l, p]) => `<div><small>${l}</small><b>${pc(p)}</b><small>fair ${fair(p)}</small></div>`).join("")}</div>
+    </div>
+    ${detail(r)}`;
+  $("#modal").hidden = false;
+  document.body.style.overflow = "hidden";
+}
+function closePlayer(){ $("#modal").hidden = true; document.body.style.overflow = ""; }
+document.body.insertAdjacentHTML("beforeend",
+  `<div id="modal" class="modal" hidden><div class="mbox"><button class="mclose" title="Zamknij (Esc)">✕</button><div id="mbody"></div></div></div>`);
+$("#modal").onclick = e => { if(e.target.id === "modal" || e.target.classList.contains("mclose")) closePlayer(); };
+addEventListener("keydown", e => { if(e.key === "Escape" && !$("#modal").hidden) closePlayer(); });
+document.addEventListener("click", e => {
+  const a = e.target.closest(".plink");
+  if(!a) return;
+  e.preventDefault();
+  openPlayer(+a.dataset.id);
+});
+
+// ======================= H2H DRUŻYN =======================
+const TH = {venue: "all", month: false};
+const monOf = d => +d.slice(5, 7);
+function openTeamH2H(gid){
+  const g = M.games.find(x => String(x.id) === String(gid)); if(!g) return;
+  TH.gid = String(gid);
+  renderTeamH2H();
+  $("#modal").hidden = false; document.body.style.overflow = "hidden";
+}
+function renderTeamH2H(){
+  const g = M.games.find(x => String(x.id) === TH.gid);
+  const [aw, hm] = g.label.split(" @ ");
+  const all = ((M.th2h || {})[TH.gid]) || [];
+  let L = all;
+  if(TH.venue === "home") L = L.filter(x => x[1] === hm);     // w hali dzisiejszego gospodarza
+  if(TH.venue === "away") L = L.filter(x => x[1] === aw);     // w hali dzisiejszego gościa
+  if(TH.month) L = L.filter(x => monOf(x[0]) === CUR_MONTH);
+  const mon = MON_FULL[CUR_MONTH] || "ten miesiąc";
+
+  // podsumowanie
+  const T = t => ({w:0, rw:0, otw:0, gf:0});
+  const st2 = {[aw]: T(), [hm]: T()};
+  let tot = 0, o55 = 0, o65 = 0, btts = 0, ot = 0, regDraw = 0;
+  L.forEach(([d, h, a, hs, as, per]) => {
+    const win = hs > as ? h : a;
+    st2[win].w++; per === "REG" ? st2[win].rw++ : st2[win].otw++;
+    st2[h].gf += hs; st2[a].gf += as;
+    const t = hs + as; tot += t;
+    if(t > 5.5) o55++; if(t > 6.5) o65++;
+    if(hs > 0 && as > 0) btts++;
+    if(per !== "REG"){ ot++; regDraw++; }
+  });
+  const n = L.length, pc0 = x => n ? Math.round(100 * x / n) + "%" : "–";
+  const teamCard = t => `<div class="thcard"><b>${esc(t)}</b>${t === hm ? " <span class='match'>(dziś gospodarz)</span>" : ""}
+    <div class="thbig">${st2[t].w}</div><div class="match">wygranych z ${n}</div>
+    <div class="match">w regulaminowym: <b>${st2[t].rw}</b> · po dogr./karnych: <b>${st2[t].otw}</b></div>
+    <div class="match">gole na mecz: <b>${n ? n2(st2[t].gf / n, 2) : "–"}</b></div></div>`;
+  const seg = (v, lab) => `<button class="segb ${TH.venue === v ? "on" : ""}" data-v="${v}">${lab}</button>`;
+  const rows = L.map(([d, h, a, hs, as, per]) => {
+    const venueTag = h === hm ? "🏠 " + esc(hm) : "✈ w " + esc(aw);
+    return `<tr><td class="l">${fmtDate(d)}</td><td class="l match">${seasonOf(d)}</td><td class="l">${esc(a)} @ ${esc(h)}</td>
+      <td><b>${as}:${hs}</b>${per !== "REG" ? ` <span class="match">${per === "SO" ? "k." : "d."}</span>` : ""}</td>
+      <td class="l">${esc(hs > as ? h : a)}</td><td>${hs + as}</td><td class="l match">${venueTag}</td></tr>`;
+  }).join("");
+  $("#mbody").innerHTML = `
+    <div class="mhead"><div><span class="name" style="font-size:18px">⚔ H2H drużyn: ${esc(aw)} @ ${esc(hm)}</span>
+      <div class="match">sezon zasadniczy od ${esc(M.th2h_from || "")} (${M.th2h_n || 20} sezonów) · ${esc(g.time)} (PL)</div></div></div>
+    <div class="thctl">
+      <div class="seg">${seg("all", "Wszystkie")}${seg("home", "W hali " + esc(hm) + " (jak dziś)")}${seg("away", "W hali " + esc(aw))}</div>
+      <label class="monchk"><input type="checkbox" id="thmon" ${TH.month ? "checked" : ""}> tylko ${esc(mon)}</label>
+      <span class="match">${n} z ${all.length} meczów</span>
+    </div>
+    ${n ? `<div class="thgrid">${teamCard(aw)}${teamCard(hm)}
+      <div class="thcard"><b>Mecz</b><div class="thbig">${n2(tot / n, 2)}</div><div class="match">goli na mecz (razem)</div>
+        <div class="match">over 5,5: <b>${pc0(o55)}</b> · over 6,5: <b>${pc0(o65)}</b></div>
+        <div class="match">obie strzelą: <b>${pc0(btts)}</b> · remis po 60 min: <b>${pc0(regDraw)}</b></div></div></div>
+      <div class="mscroll" style="padding:0 14px"><table class="mini"><thead><tr><th class="l">Data</th><th class="l">Sezon</th><th class="l">Mecz</th>
+        <th>Wynik</th><th class="l">Wygrał</th><th>Goli</th><th class="l">Hala</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="match" style="padding:0 14px">Mała próba – kilka meczów H2H to głównie szum. Traktuj jako tło, nie jako sygnał; siła drużyn dziś i bramkarze ważą więcej.</p>`
+    : `<p class="match" style="padding:0 14px">Brak meczów dla tych filtrów.</p>`}`;
+  $("#mbody").querySelectorAll(".segb").forEach(b => b.onclick = () => { TH.venue = b.dataset.v; renderTeamH2H(); });
+  $("#thmon").onchange = e => { TH.month = e.target.checked; renderTeamH2H(); };
+}
+document.addEventListener("click", e => {
+  const a = e.target.closest(".th2hlink");
+  if(!a) return;
+  e.preventDefault();
+  openTeamH2H(a.dataset.g);
+});
+document.addEventListener("change", e => {
+  if(!e.target.classList.contains("h2hmon")) return;
+  const w = e.target.closest(".h2hwrap"), r = R.find(x => x.id === +w.dataset.id);
+  const log = e.target.checked ? (r.h2h_log || []).filter(x => monOf(x[0]) === CUR_MONTH) : r.h2h_log;
+  w.querySelector(".mscroll").innerHTML = logTable(log, r.home);
+});
 
 function renderTop(){
   const pool = R.filter(r => !st.game || String(r.gameId) === st.game);
@@ -702,7 +933,7 @@ function renderTop(){
     const list = active.filter(r => { const t = toiTrend(r); return !(t && t.diff <= -1.5); })
       .sort((a, b) => TOP_MK[k].p(b) - TOP_MK[k].p(a)).slice(0, 5);
     return `<div class="tbox"><h4>${TOP_MK[k].name}</h4>${list.map((r, i) =>
-      `<div class="trow"><span class="ti">${i+1}.</span><span class="tn">${esc(r.name)}<small>${esc(r.team)} ${r.home?"vs":"@"} ${esc(r.opp)} · fair ${fair(TOP_MK[k].p(r))}</small></span><b>${pc(TOP_MK[k].p(r))}</b></div>`).join("")}</div>`;
+      `<div class="trow"><span class="ti">${i+1}.</span><span class="tn"><a href="#" class="plink" data-id="${r.id}">${esc(r.name)}</a><small>${esc(r.team)} ${r.home?"vs":"@"} ${esc(r.opp)} · fair ${fair(TOP_MK[k].p(r))}</small></span><b>${pc(TOP_MK[k].p(r))}</b></div>`).join("")}</div>`;
   }).join("");
 
   // 3) Uważaj: zawodnicy z wysokimi szansami, ale z czerwoną flagą
@@ -721,7 +952,7 @@ function renderTop(){
     <div class="info-top">
       <b>Jak z tego korzystać.</b> To lista <u>kandydatów do analizy</u>, nie pewniaki. Model zna szanse, ale nie kursy –
       wartość (value) jest tylko wtedy, gdy kurs bukmachera jest wyższy od kursu fair. Wpisz kurs przy typie, a strona policzy EV.
-      Przed zakładem sprawdź: skład i linie na dziś, bramkarza rywala, czy gra w 1. przewadze.
+      Przed zakładem sprawdź: skład i linie na dziś, <b>potwierdzonego bramkarza rywala</b> (zmień go w pasku „Bramkarze” u góry), czy gra w 1. przewadze.
       ${M.calib ? "" : `<br><span class="ev-bad">Model bez kalibracji – szanse na 3+ strzały i najwyższe szanse na gola są zawyżone. Uruchom Backtest NHL.</span>`}
     </div>
 
@@ -744,6 +975,7 @@ function renderTop(){
   });
 }
 
+renderGbar();
 render();
 </script>
 </body>
