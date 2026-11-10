@@ -131,6 +131,12 @@ ul.why.minus li::marker{content:"! ";color:var(--bad)}
 .thgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;padding:0 14px 12px}
 .thcard{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px}
 .thbig{font-size:26px;font-weight:700;margin:2px 0}
+.mtags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.mtag{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:6px;border:1px solid var(--line)}
+.mtag.win{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+.mtag.over{color:var(--good);border-color:var(--good)}
+.mtag.under{color:var(--warn);border-color:var(--warn);background:var(--warn-soft)}
+.mcard .th2hlink{margin-left:0}
 .gbar{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:0 0 14px;font-size:13px}
 .gbar summary{cursor:pointer}
 .grow{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
@@ -833,9 +839,13 @@ document.addEventListener("click", e => {
 });
 
 // ======================= H2H DRUŻYN =======================
-const TH = {venue: "all", month: false};
+const TH = {venue: "all", month: false, range: 20};
+const SEASON_START = (() => { const y = +M.date.slice(0,4), m = +M.date.slice(5,7); return m >= 8 ? y : y - 1; })();
+const seasonStartOf = d => { const y = +d.slice(0,4), m = +d.slice(5,7); return m >= 8 ? y : y - 1; };
+const inRange = (d, n) => seasonStartOf(d) > SEASON_START - n;
 const monOf = d => +d.slice(5, 7);
-function openTeamH2H(gid){
+function openTeamH2H(gid, preset){
+  if(preset){ Object.assign(TH, preset); } 
   const g = M.games.find(x => String(x.id) === String(gid)); if(!g) return;
   TH.gid = String(gid);
   renderTeamH2H();
@@ -848,6 +858,7 @@ function renderTeamH2H(){
   let L = all;
   if(TH.venue === "home") L = L.filter(x => x[1] === hm);     // w hali dzisiejszego gospodarza
   if(TH.venue === "away") L = L.filter(x => x[1] === aw);     // w hali dzisiejszego gościa
+  L = L.filter(x => inRange(x[0], TH.range));
   if(TH.month) L = L.filter(x => monOf(x[0]) === CUR_MONTH);
   const mon = MON_FULL[CUR_MONTH] || "ten miesiąc";
 
@@ -882,6 +893,7 @@ function renderTeamH2H(){
     <div class="thctl">
       <div class="seg">${seg("all", "Wszystkie")}${seg("home", "W hali " + esc(hm) + " (jak dziś)")}${seg("away", "W hali " + esc(aw))}</div>
       <label class="monchk"><input type="checkbox" id="thmon" ${TH.month ? "checked" : ""}> tylko ${esc(mon)}</label>
+      <div class="seg">${[10, 20].map(n => `<button class="segb rng ${TH.range === n ? "on" : ""}" data-n="${n}">${n} sezonów</button>`).join("")}</div>
       <span class="match">${n} z ${all.length} meczów</span>
     </div>
     ${n ? `<div class="thgrid">${teamCard(aw)}${teamCard(hm)}
@@ -892,14 +904,15 @@ function renderTeamH2H(){
         <th>Wynik</th><th class="l">Wygrał</th><th>Goli</th><th class="l">Hala</th></tr></thead><tbody>${rows}</tbody></table></div>
       <p class="match" style="padding:0 14px">Mała próba – kilka meczów H2H to głównie szum. Traktuj jako tło, nie jako sygnał; siła drużyn dziś i bramkarze ważą więcej.</p>`
     : `<p class="match" style="padding:0 14px">Brak meczów dla tych filtrów.</p>`}`;
-  $("#mbody").querySelectorAll(".segb").forEach(b => b.onclick = () => { TH.venue = b.dataset.v; renderTeamH2H(); });
+  $("#mbody").querySelectorAll(".segb[data-v]").forEach(b => b.onclick = () => { TH.venue = b.dataset.v; renderTeamH2H(); });
   $("#thmon").onchange = e => { TH.month = e.target.checked; renderTeamH2H(); };
+  $("#mbody").querySelectorAll(".segb.rng").forEach(b => b.onclick = () => { TH.range = +b.dataset.n; renderTeamH2H(); });
 }
 document.addEventListener("click", e => {
   const a = e.target.closest(".th2hlink");
   if(!a) return;
   e.preventDefault();
-  openTeamH2H(a.dataset.g);
+  openTeamH2H(a.dataset.g, a.dataset.preset ? JSON.parse(a.dataset.preset) : {venue: "all", month: false, range: 20});
 });
 document.addEventListener("change", e => {
   if(!e.target.classList.contains("h2hmon")) return;
@@ -907,6 +920,54 @@ document.addEventListener("change", e => {
   const log = e.target.checked ? (r.h2h_log || []).filter(x => monOf(x[0]) === CUR_MONTH) : r.h2h_log;
   w.querySelector(".mscroll").innerHTML = logTable(log, r.home);
 });
+
+// ---- mecze z korzystnym H2H w bieżącym miesiącu (ostatnie 10 sezonów)
+const MH = {seasons: 10, minN: 4, winPct: 0.70, overHi: 0.70, overLo: 0.30, avgHi: 6.5, avgLo: 5.0};
+function monthSignals(){
+  const out = [];
+  M.games.forEach(g => {
+    if(st.game && String(g.id) !== st.game) return;
+    const [aw, hm] = g.label.split(" @ ");
+    const L = (((M.th2h || {})[String(g.id)]) || []).filter(x => inRange(x[0], MH.seasons) && monOf(x[0]) === CUR_MONTH);
+    const n = L.length;
+    if(n < MH.minN) { if(n) out.push({g, aw, hm, n, low: true}); return; }
+    const w = {[aw]: 0, [hm]: 0}, gf = {[aw]: 0, [hm]: 0}, venue = {w: 0, n: 0};
+    let tot = 0, o55 = 0, o65 = 0;
+    L.forEach(([d, h, a, hs, as]) => {
+      const win = hs > as ? h : a; w[win]++;
+      gf[h] += hs; gf[a] += as;
+      tot += hs + as; if(hs + as > 5.5) o55++; if(hs + as > 6.5) o65++;
+    });
+    const fav = w[aw] >= w[hm] ? aw : hm, favPct = w[fav] / n;
+    const inVenue = L.filter(x => x[1] === hm);              // w hali dzisiejszego gospodarza
+    const vFav = inVenue.filter(x => (x[3] > x[4] ? x[1] : x[2]) === fav).length;
+    const avg = tot / n, p55 = o55 / n;
+    const winSig = favPct >= MH.winPct;
+    const goalSig = (avg >= MH.avgHi || p55 >= MH.overHi) ? "over" : (avg <= MH.avgLo || p55 <= MH.overLo) ? "under" : null;
+    out.push({g, aw, hm, n, fav, favW: w[fav], favPct, gfFav: gf[fav] / n, gfOth: gf[fav === aw ? hm : aw] / n,
+              avg, p55, p65: o65 / n, o55, winSig, goalSig, vN: inVenue.length, vFav, both: winSig && !!goalSig});
+  });
+  return out;
+}
+function monthCard(x){
+  const mon = MON_FULL[CUR_MONTH] || "ten miesiąc";
+  const preset = esc(JSON.stringify({venue: "all", month: true, range: MH.seasons}));
+  const tags = [];
+  if(x.winSig) tags.push(`<span class="mtag win">${esc(x.fav)} ${x.favW}–${x.n - x.favW} (${Math.round(x.favPct*100)}%)</span>`);
+  if(x.goalSig === "over") tags.push(`<span class="mtag over">OVER · śr. ${n2(x.avg,1)} gola</span>`);
+  if(x.goalSig === "under") tags.push(`<span class="mtag under">UNDER · śr. ${n2(x.avg,1)} gola</span>`);
+  return `<div class="pick mcard">
+    <div class="pick-h"><div><span class="name">${x.both ? "⭐ " : ""}${esc(x.aw)} @ ${esc(x.hm)}</span>
+      <div class="match">${esc(x.g.time)} · ${esc(mon)}, ost. ${MH.seasons} sezonów: <b>${x.n}</b> meczów</div></div>
+      <a href="#" class="th2hlink" data-g="${x.g.id}" data-preset="${preset}">⚔ szczegóły</a></div>
+    <div class="mtags">${tags.join("")}</div>
+    <ul class="why plus">
+      <li>bilans: ${esc(x.fav)} wygrał ${x.favW} z ${x.n}; gole na mecz ${esc(x.fav)} ${n2(x.gfFav,1)} : ${n2(x.gfOth,1)}</li>
+      <li>w hali ${esc(x.hm)} (jak dziś): ${x.vN ? `${esc(x.fav)} ${x.vFav}–${x.vN - x.vFav}` : "brak meczów"}</li>
+      <li>goli razem: śr. ${n2(x.avg,2)} · over 5,5 w ${x.o55}/${x.n} (${Math.round(x.p55*100)}%) · over 6,5 ${Math.round(x.p65*100)}%</li>
+    </ul>
+  </div>`;
+}
 
 function renderTop(){
   const pool = R.filter(r => !st.game || String(r.gameId) === st.game);
@@ -959,6 +1020,17 @@ function renderTop(){
     <h3 class="sec">🔧 Na warsztat <span class="match">– wysoka szansa + min. 2 argumenty za + brak czerwonych flag (najlepszy rynek dla zawodnika)</span></h3>
     ${warsztat.length ? `<div class="picks">${warsztat.map(c => pickCard(c.r, c.k, c.w)).join("")}</div>`
       : `<p class="match">Dziś brak kandydatów spełniających wszystkie warunki.</p>`}
+
+    ${(() => {
+      const MON_LOC = {1:"styczniu",2:"lutym",3:"marcu",4:"kwietniu",5:"maju",6:"czerwcu",9:"wrześniu",10:"październiku",11:"listopadzie",12:"grudniu"};
+      const sig = monthSignals(), mon = MON_LOC[CUR_MONTH] || "tym miesiącu";
+      const good = sig.filter(x => !x.low && (x.winSig || x.goalSig)).sort((a, b) => (b.both - a.both) || (b.n - a.n) || (b.favPct - a.favPct));
+      const small = sig.filter(x => x.low).length;
+      return `<h3 class="sec">📅 Mecze z korzystnym H2H w ${esc(mon)} <span class="match">– ost. ${MH.seasons} sezonów, min. ${MH.minN} mecze;
+        bilans ≥ ${Math.round(MH.winPct*100)}% albo gole (śr. ≥ ${n2(MH.avgHi,1)} / ≤ ${n2(MH.avgLo,1)}, over 5,5 ≥ ${Math.round(MH.overHi*100)}% / ≤ ${Math.round(MH.overLo*100)}%). ⭐ = oba sygnały.</span></h3>
+        ${good.length ? `<div class="picks">${good.map(monthCard).join("")}</div>` : `<p class="match">Dziś brak meczów spełniających warunki.</p>`}
+        <p class="match">${small ? `${small} mecz(e) pominięte – za mało meczów H2H w tym miesiącu. ` : ""}Uwaga: to kilka meczów z 10 lat, przy innych składach – backtest tego nie sprawdzał. Traktuj jako tło do typu, porównaj z kursem i dzisiejszą formą drużyn oraz bramkarzami.</p>`;
+    })()}
 
     <h3 class="sec">📈 Najwyższe szanse wg rynku</h3>
     <div class="tgrid">${tops}</div>
