@@ -137,6 +137,10 @@ ul.why.minus li::marker{content:"! ";color:var(--bad)}
 .mtag.over{color:var(--good);border-color:var(--good)}
 .mtag.under{color:var(--warn);border-color:var(--warn);background:var(--warn-soft)}
 .mcard .th2hlink{margin-left:0}
+.sbadge{font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:#fff1d6;color:#8a4b00;border:1px solid #f3c56b;white-space:nowrap}
+.sbanner{margin:0 54px 10px 14px;padding:8px 12px;border-radius:8px;background:#fff1d6;color:#8a4b00;border:1px solid #f3c56b;font-size:13px}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .sbadge, :root:not([data-theme="light"]) .sbanner{background:#3a2a10;color:#ffcf7a;border-color:#6b4b14} }
+:root[data-theme="dark"] .sbadge, :root[data-theme="dark"] .sbanner{background:#3a2a10;color:#ffcf7a;border-color:#6b4b14}
 .gbar{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:0 0 14px;font-size:13px}
 .gbar summary{cursor:pointer}
 .grow{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
@@ -360,6 +364,7 @@ function renderGbar(){
         ${G.b2b ? `<span class="gb2b" title="Drużyna grała wczoraj">B2B</span>` : ""}</label>`;
     };
     return `<div class="grow"><span class="gtime">${esc(g.time)}</span>${one(aw)}<span class="match">@</span>${one(hm)}`
+      + streakAlerts(g.id).map(a => `<span class="sbadge" title="${esc(a.txt)}">🔥 ${esc(a.t)} ${a.pts}${a.all ? "+" : ""} m. z pkt</span>`).join("")
       + `<a href="#" class="th2hlink" data-g="${g.id}" title="Wyniki meczów tych drużyn">⚔ H2H drużyn</a></div>`;
   }).join("") : `<p class="match">Brak danych o bramkarzach.</p>`;
   $("#gbar").querySelectorAll("select").forEach(el => el.onchange = () => {
@@ -888,6 +893,7 @@ function renderTeamH2H(){
       <td class="l">${esc(hs > as ? h : a)}</td><td>${hs + as}</td><td class="l match">${venueTag}</td></tr>`;
   }).join("");
   $("#mbody").innerHTML = `
+    ${streakAlerts(TH.gid).map(a => `<div class="sbanner">🔥 <b>Aktywna seria:</b> ${esc(a.txt)}${a.note ? ` <span class="match">– ${esc(a.note)}</span>` : ""}</div>`).join("")}
     <div class="mhead"><div><span class="name" style="font-size:18px">⚔ H2H drużyn: ${esc(aw)} @ ${esc(hm)}</span>
       <div class="match">sezon zasadniczy od ${esc(M.th2h_from || "")} (${M.th2h_n || 20} sezonów) · ${esc(g.time)} (PL)</div></div></div>
     <div class="thctl">
@@ -922,6 +928,40 @@ document.addEventListener("change", e => {
 });
 
 // ---- mecze z korzystnym H2H w bieżącym miesiącu (ostatnie 10 sezonów)
+// ---- aktywne serie H2H drużyn (jak NHL Records: punkt = wygrana albo porażka po dogrywce/karnych; sezon zasadniczy)
+const SK = {pts: 6, win: 5};      // próg alertu: seria z punktem ≥ 6 albo wygranych ≥ 5
+function pairStreaks(gid){
+  const g = M.games.find(x => String(x.id) === String(gid));
+  const [aw, hm] = g.label.split(" @ ");
+  const L = ((M.th2h || {})[String(gid)]) || [];              // od najnowszych
+  const res = {};
+  [aw, hm].forEach(t => {
+    let pts = 0, win = 0, pDone = false, wDone = false;
+    for(const [d, h, a, hs, as, per] of L){
+      const won = (hs > as ? h : a) === t, point = won || per !== "REG";
+      if(!pDone){ point ? pts++ : (pDone = true); }
+      if(!wDone){ won ? win++ : (wDone = true); }
+      if(pDone && wDone) break;
+    }
+    res[t] = {pts, win, ptsAll: !pDone && pts > 0, winAll: !wDone && win > 0};
+  });
+  return {g, aw, hm, n: L.length, first: L.length ? L[L.length - 1][0] : null, res};
+}
+function streakAlerts(gid){
+  const s = pairStreaks(gid), out = [];
+  [s.aw, s.hm].forEach(t => {
+    const r = s.res[t], o = t === s.aw ? s.hm : s.aw;
+    if(r.pts >= SK.pts || r.win >= SK.win){
+      const plus = r.ptsAll ? "+" : "";
+      const txt = `${t} z punktem w ${r.pts}${plus} kolejnych meczach z ${o}` + (r.win >= 2 ? ` (w tym ${r.win}${r.winAll ? "+" : ""} wygranych z rzędu)` : "");
+      out.push({t, o, pts: r.pts, win: r.win, all: r.ptsAll, txt,
+                note: r.ptsAll ? `seria trwa przez całe dostępne dane (od ${fmtDate(s.first)}) – może być dłuższa` : "",
+                home: t === s.hm});
+    }
+  });
+  return out;
+}
+
 const MH = {seasons: 10, minN: 4, winPct: 0.70, overHi: 0.70, overLo: 0.30, avgHi: 6.5, avgLo: 5.0};
 function monthSignals(){
   const out = [];
@@ -1020,6 +1060,21 @@ function renderTop(){
     <h3 class="sec">🔧 Na warsztat <span class="match">– wysoka szansa + min. 2 argumenty za + brak czerwonych flag (najlepszy rynek dla zawodnika)</span></h3>
     ${warsztat.length ? `<div class="picks">${warsztat.map(c => pickCard(c.r, c.k, c.w)).join("")}</div>`
       : `<p class="match">Dziś brak kandydatów spełniających wszystkie warunki.</p>`}
+
+    ${(() => {
+      const al = M.games.filter(g => !st.game || String(g.id) === st.game)
+        .flatMap(g => streakAlerts(g.id).map(a => ({...a, g})))
+        .sort((a, b) => b.pts - a.pts);
+      if(!al.length) return "";
+      const preset = esc(JSON.stringify({venue: "all", month: false, range: 20}));
+      return `<h3 class="sec">🔥 Aktywne serie H2H drużyn <span class="match">– sezon zasadniczy, ost. 20 sezonów; seria z punktem ≥ ${SK.pts} albo wygranych ≥ ${SK.win} (jak NHL Records „point streaks vs. franchise”)</span></h3>
+        <div class="picks">${al.map(a => `<div class="pick">
+          <div class="pick-h"><div><span class="name">${esc(a.g.label)}</span><div class="match">${esc(a.g.time)} · ${a.home ? "seria gospodarza" : "seria gościa"}</div></div>
+            <a href="#" class="th2hlink" data-g="${a.g.id}" data-preset="${preset}">⚔ szczegóły</a></div>
+          <div class="mtags"><span class="mtag win">🔥 ${esc(a.t)}: ${a.pts}${a.all ? "+" : ""} m. z punktem</span>${a.win >= SK.win ? `<span class="mtag over">${a.win} wygranych z rzędu</span>` : ""}</div>
+          <ul class="why plus"><li>${esc(a.txt)}</li>${a.note ? `<li>${esc(a.note)}</li>` : ""}</ul></div>`).join("")}</div>
+        <p class="match">Seria to historia, nie prognoza – sama w sobie nie zwiększa szans (rynek często ją przecenia). Szukaj value raczej po stronie drużyny, która serię „ma przeciw sobie”, jeśli jej kurs jest zawyżony.</p>`;
+    })()}
 
     ${(() => {
       const MON_LOC = {1:"styczniu",2:"lutym",3:"marcu",4:"kwietniu",5:"maju",6:"czerwcu",9:"wrześniu",10:"październiku",11:"listopadzie",12:"grudniu"};
