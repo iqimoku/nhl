@@ -2,8 +2,12 @@ name: Raport NHL
 
 on:
   schedule:
-    - cron: "17 11 * * *"
-    - cron: "17 20 * * *"
+    # godziny w UTC (GitHub nie zna czasu polskiego):
+    #   10:00 UTC = 11:00 w Polsce zimą (12:00 latem) – raport poranny
+    #   17:00 UTC = 18:00 w Polsce zimą (19:00 latem) – raport wieczorny: składy po porannych treningach
+    # GitHub potrafi opóźnić start o 5–30 min, więc to „około” tej godziny.
+    - cron: "0 10 * * *"
+    - cron: "0 17 * * *"
   workflow_dispatch:
     inputs:
       date:
@@ -11,8 +15,8 @@ on:
         required: false
         default: ""
 
-permissions:
-  contents: write
+# Bezpieczeństwo: domyślnie brak uprawnień; zadanie dostaje tylko zapis treści repozytorium (commit raportu).
+permissions: {}
 
 concurrency:
   group: raport-nhl
@@ -22,17 +26,21 @@ jobs:
   raport:
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
+      # akcje przypięte do konkretnych commitów (nie da się ich podmienić pod tym samym numerem wersji)
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
 
       - name: Instalacja
-        run: pip install -r requirements.txt
+        run: pip install --disable-pip-version-check -r requirements.txt
 
-      - uses: actions/cache@v4
+      # dane z zakończonych sezonów zapisują się między uruchomieniami – kolejne przebiegi trwają ~1 min
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: cache
           key: nhl-cache-${{ github.run_id }}
@@ -43,6 +51,8 @@ jobs:
           DATE_IN: ${{ github.event.inputs.date }}
         run: |
           if [ -n "$DATE_IN" ]; then
+            # tylko format RRRR-MM-DD – nic innego nie trafia do komendy
+            if ! [[ "$DATE_IN" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then echo "Zła data: użyj RRRR-MM-DD"; exit 1; fi
             python nhl_model.py --site docs --no-open --date "$DATE_IN"
           else
             python nhl_model.py --site docs --no-open
