@@ -1,0 +1,11 @@
+# Co tydzień GitHub sprawdzi, czy są nowsze (np. łatane) wersje bibliotek i akcji, i zaproponuje zmianę (pull request).
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
