@@ -4,24 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NHL – szanse zawodników</title>
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0E141D">
+__CSP__
 <style>
-:root{
-  --bg:#f6f7f9; --panel:#ffffff; --ink:#14171c; --muted:#5d6673; --line:#e3e6eb;
-  --accent:#0b5fff; --accent-soft:#e6eeff; --warn:#b45309; --warn-soft:#fff4e5;
-  --bar:#0b5fff; --bar-bg:#edf0f4; --good:#0f7b4f; --bad:#b42318;
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#0f1115; --panel:#171a20; --ink:#e8ebf0; --muted:#98a1ae; --line:#2a2f38;
-    --accent:#6e9bff; --accent-soft:#1d2a45; --warn:#f0a050; --warn-soft:#3a2a15;
-    --bar:#6e9bff; --bar-bg:#252a33; --good:#4cc38a; --bad:#ff7a6b;
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#0f1115; --panel:#171a20; --ink:#e8ebf0; --muted:#98a1ae; --line:#2a2f38;
-  --accent:#6e9bff; --accent-soft:#1d2a45; --warn:#f0a050; --warn-soft:#3a2a15;
-  --bar:#6e9bff; --bar-bg:#252a33; --good:#4cc38a; --bad:#ff7a6b;
-}
+@font-face{font-family:"Barlow";font-weight:400;font-display:swap;src:url(__FONTS__/barlow-latin-400-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Barlow";font-weight:400;font-display:swap;src:url(__FONTS__/barlow-latin-ext-400-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"Barlow";font-weight:600;font-display:swap;src:url(__FONTS__/barlow-latin-600-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Barlow";font-weight:600;font-display:swap;src:url(__FONTS__/barlow-latin-ext-600-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"Barlow";font-weight:700;font-display:swap;src:url(__FONTS__/barlow-latin-700-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Barlow";font-weight:700;font-display:swap;src:url(__FONTS__/barlow-latin-ext-700-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"Barlow Condensed";font-weight:600;font-display:swap;src:url(__FONTS__/barlow-condensed-latin-600-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Barlow Condensed";font-weight:600;font-display:swap;src:url(__FONTS__/barlow-condensed-latin-ext-600-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"Barlow Condensed";font-weight:700;font-display:swap;src:url(__FONTS__/barlow-condensed-latin-700-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Barlow Condensed";font-weight:700;font-display:swap;src:url(__FONTS__/barlow-condensed-latin-ext-700-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 .wrap{max-width:1280px;margin:0 auto;padding:20px 16px 48px}
@@ -66,7 +63,7 @@ td{font-variant-numeric:tabular-nums}
   color:var(--muted);border:1px solid var(--line)}
 .chase{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;margin-left:6px;
   background:#fff1d6;color:#8a4b00;border:1px solid #f3c56b}
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .chase{background:#3a2a10;color:#ffcf7a;border-color:#6b4b14} }
+:root:not([data-theme="light"]) .chase{background:#3a2a10;color:#ffcf7a;border-color:#6b4b14}
 :root[data-theme="dark"] .chase{background:#3a2a10;color:#ffcf7a;border-color:#6b4b14}
 .tbadge{display:inline-block;font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;margin-left:6px;border:1px solid var(--line)}
 .tbadge.tdown{color:var(--bad);border-color:var(--bad)}
@@ -139,7 +136,7 @@ ul.why.minus li::marker{content:"! ";color:var(--bad)}
 .mcard .th2hlink{margin-left:0}
 .sbadge{font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:#fff1d6;color:#8a4b00;border:1px solid #f3c56b;white-space:nowrap}
 .sbanner{margin:0 54px 10px 14px;padding:8px 12px;border-radius:8px;background:#fff1d6;color:#8a4b00;border:1px solid #f3c56b;font-size:13px}
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .sbadge, :root:not([data-theme="light"]) .sbanner{background:#3a2a10;color:#ffcf7a;border-color:#6b4b14} }
+:root:not([data-theme="light"]) .sbadge, :root:not([data-theme="light"]) .sbanner{background:#3a2a10;color:#ffcf7a;border-color:#6b4b14}
 :root[data-theme="dark"] .sbadge, :root[data-theme="dark"] .sbanner{background:#3a2a10;color:#ffcf7a;border-color:#6b4b14}
 .gbar{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:0 0 14px;font-size:13px}
 .gbar summary{cursor:pointer}
@@ -183,35 +180,259 @@ table.mini tr.sum + tr.sum td{border-top:1px solid var(--line)}
 .btn,.nav select{font:inherit;font-size:12px;border:1px solid var(--line);background:var(--panel);color:var(--muted);
   border-radius:8px;padding:5px 9px;cursor:pointer;text-decoration:none}
 .nav select{color:var(--ink)}
+
+/* ===================== APLIKACJA – wygląd „bukmacherski” ===================== */
+/* ciemny motyw domyślnie; jasny tylko po przełączeniu */
+:root{
+  --bg:#0E141D; --panel:#151D29; --raised:#1C2635; --ink:#E8EEF6; --muted:#8B98AC; --line:#263346;
+  --accent:#4D8DFF; --accent-ink:#FFFFFF; --accent-soft:#1A2C4A; --warn:#F2A65A; --warn-soft:#3A2A15;
+  --bar:#4D8DFF; --bar-bg:#24314A; --good:#34C77B; --good-soft:#123826; --bad:#FF4D5E; --gold:#F5B83D;
+  --red:#FF4D5E; --boards:#0B1018; --boards-2:#151D29; --boards-ink:#E8EEF6; --boards-muted:#8B98AC;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --r-lg:16px; --r-md:12px; --r-sm:8px;
+  --nav-h:0px;
+}
+:root[data-theme="light"]{
+  --bg:#EEF2F7; --panel:#FFFFFF; --raised:#F4F7FB; --ink:#121A26; --muted:#5C6B80; --line:#DCE3EC;
+  --accent:#1F5FD6; --accent-soft:#E2EBFA; --warn:#A2560A; --warn-soft:#FDF1E1;
+  --bar:#1F5FD6; --bar-bg:#E1E8F1; --good:#11795A; --good-soft:#E2F3EC; --bad:#D0202E; --gold:#B7791F;
+  --red:#D0202E; --boards:#FFFFFF; --boards-2:#F4F7FB; --boards-ink:#121A26; --boards-muted:#5C6B80;
+}
+html{color-scheme:dark}
+:root[data-theme="light"]{color-scheme:light}
+html,body{overflow-x:clip}
+body{font-family:var(--body);font-size:14.5px;line-height:1.5;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;
+  padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom))}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.wrap{max-width:1320px;margin:0 auto;padding:0 20px 56px}
+
+/* pasek aplikacji */
+.appbar{display:block;margin:0;position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--boards) 88%,transparent);backdrop-filter:saturate(1.4) blur(10px);
+  border-bottom:1px solid var(--line)}
+.appbar-in{max-width:1320px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;gap:12px}
+.logo{font-family:var(--display);font-size:22px;font-weight:700;color:var(--ink);text-decoration:none;letter-spacing:.01em;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.logo i{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 50% 50%,var(--red) 0 2px,transparent 2.5px),
+  linear-gradient(90deg,transparent 45%,var(--red) 45% 55%,transparent 55%),var(--accent);display:inline-block;flex:none}
+.appbar .nav{margin-left:auto;display:flex;gap:8px;align-items:center}
+.btn{font:inherit;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--raised);color:var(--ink);
+  border-radius:999px;padding:7px 14px;cursor:pointer;text-decoration:none;line-height:1.2}
+.btn:hover{border-color:var(--accent)}
+.days{display:flex;gap:2px;background:var(--raised);border:1px solid var(--line);border-radius:999px;padding:3px}
+.dbtn{display:block;text-align:center;text-decoration:none;color:var(--muted);border:0;background:none;border-radius:999px;padding:4px 12px;line-height:1.15}
+.dbtn small{display:none}
+.dbtn b{font-family:var(--body);font-size:13px;font-weight:600}
+.dbtn.on{background:var(--accent);color:var(--accent-ink)}
+
+/* nagłówek dnia */
+.hero{padding:22px 0 14px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:6px 16px}
+.hdate{font-family:var(--display);font-weight:700;font-size:40px;line-height:1;letter-spacing:-.005em;color:var(--ink)}
+.hdate span{color:var(--muted);font-weight:600;font-size:22px;margin-left:12px}
+.sub{color:var(--muted);font-size:13px;margin:0}
+.calib{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--good-soft);color:var(--good)}
+.calib.off{background:var(--warn-soft);color:var(--warn)}
+
+/* mecze dnia – przewijany pasek kafli */
+.games{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 14px;margin:0 0 4px;scroll-snap-type:x proximity;scrollbar-width:none}
+.games::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;scroll-snap-align:start;min-width:136px;border:1px solid var(--line);background:var(--panel);color:var(--ink);
+  border-radius:var(--r-md);padding:10px 14px;cursor:pointer;text-align:left;font:inherit}
+.chip small{display:block;color:var(--muted);font-size:12px;margin-bottom:2px}
+.chip b{font-family:var(--display);font-size:20px;font-weight:600;letter-spacing:.02em}
+.chip:hover{border-color:var(--accent)}
+.chip.on{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+
+/* rynki: pigułki u góry, na telefonie dolny pasek pod kciuk */
+.tabs{display:flex;gap:6px;border:0;margin:6px 0 14px;overflow-x:auto;scrollbar-width:none}
+.tab{font:inherit;font-family:var(--display);font-size:18px;font-weight:600;color:var(--muted);background:var(--panel);border:1px solid var(--line);
+  border-radius:999px;padding:7px 18px;cursor:pointer;white-space:nowrap;margin:0}
+.tab:hover{color:var(--ink);border-color:var(--accent)}
+.tab.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.tab[data-m="top"]{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 45%,var(--line))}
+.tab[data-m="top"].on{background:var(--gold);border-color:var(--gold);color:#1B1300}
+
+/* panele */
+.gbar,.filters{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);padding:10px 16px;margin:0 0 12px;font-size:13.5px}
+.gbar summary,.filters summary{cursor:pointer;font-weight:600;list-style:none;display:flex;align-items:center;gap:8px;padding:2px 0}
+.gbar summary::-webkit-details-marker,.filters summary::-webkit-details-marker{display:none}
+.gbar summary::before,.filters summary::before{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;flex:none}
+.gbar[open] summary::before,.filters[open] summary::before{transform:rotate(45deg)}
+.fcount{background:var(--accent);color:var(--accent-ink);font-size:11.5px;border-radius:999px;padding:0 8px;line-height:18px}
+.filters .controls{background:none;border:0;padding:10px 0 4px;margin:0}
+.controls{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
+.controls label{color:var(--muted);font-size:13px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;max-width:100%}
+.controls input[type=search],.controls select,.controls input[type=number]{font:inherit;color:var(--ink);background:var(--raised);border:1px solid var(--line);
+  border-radius:var(--r-sm);padding:8px 10px;max-width:100%;min-width:0}
+.controls input[type=search]{min-width:240px}
+.controls input[type=range],.controls input[type=checkbox]{accent-color:var(--accent)}
+.controls input[type=checkbox]{width:17px;height:17px}
+.gsel select{background:var(--raised);color:var(--ink);border:1px solid var(--line);border-radius:var(--r-sm)}
+.grow{border-top:1px solid var(--line)}
+
+/* pasek nad listą */
+.listbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:4px 0 12px}
+.sortbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0}
+.sblab{font-size:13px;color:var(--muted)}
+.sbtn{font:inherit;font-size:13px;font-weight:600;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 12px;cursor:pointer}
+.sbtn:hover{border-color:var(--accent)}
+.sbtn.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.sdir{margin-left:6px}
+.viewsw{margin-left:auto;display:flex;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:3px}
+.viewsw button{font:inherit;font-size:13px;font-weight:600;border:0;background:none;color:var(--muted);border-radius:999px;padding:5px 12px;cursor:pointer}
+.viewsw button.on{background:var(--raised);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.lcount{font-size:13px;color:var(--muted)}
+
+/* karta zawodnika z przyciskami szans */
+.plist{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
+.pc{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.pc.inactive{opacity:.6}
+.pc-h{display:flex;align-items:center;gap:0;min-width:0}
+.pc-id{min-width:0;flex:1}
+.pc-name{font-weight:700;font-size:16px;color:var(--ink);text-decoration:none;border:0}
+.pc-name:hover{color:var(--accent)}
+.pc-meta{color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc-meta b{color:var(--ink)}
+.pc-rank{font-family:var(--display);font-size:15px;font-weight:600;color:var(--muted);margin-left:8px;align-self:flex-start}
+.pc-badges{display:flex;flex-wrap:wrap;gap:4px}
+.pc-badges:empty{display:none}
+.pc-badges .badge,.pc-badges .elc,.pc-badges .chase,.pc-badges .tbadge{margin-left:0}
+.odds{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.ob{font:inherit;color:var(--ink);background:var(--raised);border:1px solid var(--line);border-radius:var(--r-md);padding:7px 4px 6px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:0;min-width:0}
+.ob span{font-size:11.5px;color:var(--muted);font-weight:600;white-space:nowrap}
+.ob b{font-family:var(--display);font-size:21px;font-weight:700;line-height:1.1}
+.ob small{font-size:11.5px;color:var(--muted)}
+.ob:hover{border-color:var(--accent)}
+.ob.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--accent-soft)}
+.ob.hi b{color:var(--gold)}
+.pc-f{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
+.pc-f b{color:var(--ink);font-weight:600}
+.pc-f .down{color:var(--bad)} .pc-f .up{color:var(--good)}
+.more{display:block;margin:16px auto 0;font:inherit;font-weight:600;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:10px 22px;cursor:pointer}
+.more:hover{border-color:var(--accent)}
+.empty-cards{background:var(--panel);border:1px dashed var(--line);border-radius:var(--r-lg);padding:28px;text-align:center;color:var(--muted)}
+
+/* tabela (widok Pro) */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg)}
+th{font-size:12.5px;font-weight:600;color:var(--muted);background:var(--panel);border-bottom:1px solid var(--line);padding-top:11px;padding-bottom:9px}
+th.sorted{color:var(--accent)}
+td{border-bottom:1px solid var(--line)}
+tbody tr:hover{background:var(--raised)}
+.prob .bar{width:70px;height:5px;border-radius:3px}
+.prob b{font-family:var(--display);font-size:18px;font-weight:600;min-width:54px}
+tr.detail>td{background:var(--bg)}
+
+/* zdjęcia */
+.av{--s:34px;width:var(--s);height:var(--s);border-radius:50%;background:var(--raised);position:relative;overflow:hidden;
+  display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;flex:none;margin-right:10px;box-shadow:inset 0 0 0 1px var(--line)}
+.av i{font-style:normal;font-family:var(--display);font-weight:600;font-size:calc(var(--s) * .4);color:var(--muted)}
+.av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 12%}
+td .av{margin-top:-4px;margin-bottom:-4px}
+.pid{display:flex;align-items:center;min-width:0}
+
+/* Typy dnia */
+.info-top{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:var(--r-lg);padding:12px 16px;color:var(--muted)}
+.info-top b{color:var(--ink)}
+h3.sec{font-family:var(--display);font-size:24px;font-weight:600;margin:28px 0 12px;padding:0;border:0}
+h3.sec .match{font-family:var(--body);font-size:12.5px}
+.picks{gap:12px}
+.pick{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px 16px}
+.pick-p b{font-family:var(--display);font-size:32px;font-weight:700;line-height:1}
+.pick-p .mk{text-transform:none;letter-spacing:0;font-size:12.5px;font-weight:600;color:var(--accent)}
+.qh2h{background:var(--raised);border-radius:var(--r-md)}
+.pick-odds{border-top:1px solid var(--line)}
+.pick-odds input{background:var(--raised);border:1px solid var(--line);color:var(--ink);border-radius:var(--r-sm);padding:7px 9px;width:90px;font-weight:600}
+.ev-good{color:var(--good)}
+.tbox{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg)}
+.tbox h4{font-family:var(--display);font-size:18px;font-weight:600}
+.trow b{font-family:var(--display);font-size:16px;font-weight:600}
+.mtag,.sbadge{border-radius:999px}
+
+/* okna */
+.modal{background:rgba(4,8,14,.7);backdrop-filter:blur(3px)}
+.mbox{background:var(--panel);border:1px solid var(--line);border-radius:20px}
+.mclose{background:var(--raised);border-color:var(--line);color:var(--ink);border-radius:999px}
+.thcard{background:var(--raised);border:0}
+.thbig,.mprobs b{font-family:var(--display);font-weight:700}
+.thbig{font-size:34px}
+.mprobs b{font-size:22px}
+table.mini{background:var(--panel)}
+.notes{margin-top:28px}
+.notes h3{font-family:var(--display);font-size:20px;font-weight:600}
+
+/* telefon: dolny pasek rynków, filtry schowane */
+.hotb{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:color-mix(in srgb,var(--red) 18%,transparent);color:var(--red);border:1px solid color-mix(in srgb,var(--red) 45%,transparent)}
+.hotv{color:var(--red);font-weight:700}
+.hotbox .pid{margin-bottom:8px}
+.hotrow{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin:4px 0 6px}
+.hotn{font-family:var(--display);font-size:38px;font-weight:700;line-height:1;color:var(--red)}
+.hotp{text-align:right}
+.hotp b{font-family:var(--display);font-size:22px;font-weight:700}
+@media (max-width:720px){
+  :root{--nav-h:64px}
+  .wrap{padding:0 12px 40px}
+  .appbar-in{padding:8px 12px;gap:8px}
+  .logo{font-size:19px}
+  .appbar .nav .btn{padding:6px 10px}
+  #csv{display:none}
+  .hero{padding:14px 0 10px}
+  .hdate{font-size:30px}
+  .hdate span{font-size:18px}
+  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:40;margin:0;gap:0;padding:6px 6px calc(6px + env(safe-area-inset-bottom));
+    background:color-mix(in srgb,var(--boards) 94%,transparent);backdrop-filter:blur(10px);border-top:1px solid var(--line);overflow:visible}
+  .tab{flex:1 1 0;border:0;background:none;border-radius:var(--r-md);font-size:15px;padding:10px 2px;min-height:48px;text-align:center}
+  .tab.on{background:var(--accent-soft);color:var(--ink)}
+  .tab[data-m="top"].on{background:color-mix(in srgb,var(--gold) 22%,transparent);color:var(--gold)}
+  .plist{grid-template-columns:1fr}
+  .controls input[type=search]{min-width:0;flex:1 1 100%}
+  .viewsw{display:none}
+  #gbarsum{display:none}
+  .sortbar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;max-width:100%;padding-bottom:2px}
+  .sortbar::-webkit-scrollbar{display:none}
+  .sbtn{white-space:nowrap}
+  .listbar{flex-wrap:nowrap}
+  .lcount{display:none}
+  .ob b{font-size:19px}
+}
+@media (max-width:420px){ .days .dbtn{padding:4px 8px} .logo span{display:none} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+
 [hidden]{display:none !important}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>NHL · szanse zawodników</h1>
-    <span class="sub" id="sub"></span>
+<header class="appbar">
+  <div class="appbar-in">
+    <a class="logo" href="#" aria-label="Szanse NHL – początek"><i aria-hidden="true"></i><span>Szanse NHL</span></a>
     <div class="nav">
       <div id="days" class="days" hidden></div>
       <a id="elcl" class="btn" hidden>Bonusy ELC</a>
       <a id="csv" class="btn" hidden download>CSV</a>
-      <button class="btn" id="theme">Motyw</button>
+      <button class="btn" id="theme" aria-label="Zmień motyw jasny/ciemny">Motyw</button>
     </div>
-  </header>
-
-  <div class="games" id="games"></div>
+  </div>
+</header>
+<div class="wrap">
+  <section class="hero">
+    <div id="hdate" class="hdate"></div>
+    <span id="calib" class="calib"></span>
+    <p class="sub" id="sub"></p>
+  </section>
+  <div class="games" id="games" aria-label="Mecze dnia"></div>
   <details class="gbar" id="gbarw" open hidden><summary>🥅 <b>Bramkarze</b> <span class="match" id="gbarsum"></span></summary><div id="gbar"></div></details>
 
   <div class="tabs" id="tabs">
     <button class="tab on" data-m="g">Gole</button>
     <button class="tab" data-m="a">Asysty</button>
-    <button class="tab" data-m="p">Punkty (G+A)</button>
+    <button class="tab" data-m="p">Punkty</button>
     <button class="tab" data-m="s">Strzały</button>
-    <button class="tab" data-m="top">⭐ Typy dnia</button>
+    <button class="tab" data-m="top">Typy dnia</button>
   </div>
 
   <div id="top" hidden></div>
 
+  <details class="filters" id="filtersw" open><summary>Filtry <span class="fcount" id="fcount" hidden></span></summary>
   <div class="controls">
     <input type="search" id="q" placeholder="Szukaj zawodnika…">
     <select id="team"><option value="">Wszystkie drużyny</option></select>
@@ -238,6 +459,16 @@ table.mini tr.sum + tr.sum td{border-top:1px solid var(--line)}
         <option value="anomc">⚡ teraz 0–0, a w karierze nigdy wcześniej</option>
       </select>
     </label>
+    <label title="Aktywna seria meczów z rzędu ze zdarzeniem">Forma:
+      <select id="hot">
+        <option value="">wszyscy</option>
+        <option value="p">seria z punktem ≥ N</option>
+        <option value="g">seria z golem ≥ N</option>
+        <option value="a">seria z asystą ≥ N</option>
+        <option value="s">seria 3+ SOG ≥ N</option>
+      </select>
+      <span id="hnw" hidden>N = <input type="number" id="hn" min="1" max="40" value="5" style="width:56px"></span>
+    </label>
     <label>Susza:
       <select id="drought">
         <option value="">wszyscy</option>
@@ -256,7 +487,15 @@ table.mini tr.sum + tr.sum td{border-top:1px solid var(--line)}
     <div id="dwarn" class="dwarn" hidden></div>
     <label id="chasel" hidden><input type="checkbox" id="chase"> tylko goniący bonus ELC 🎯 <span id="chasen"></span></label>
   </div>
+  </details>
 
+  <div class="listbar" id="listbar">
+    <div class="sortbar" id="sortbar" role="toolbar" aria-label="Sortowanie"></div>
+    <span class="lcount" id="lcount"></span>
+    <div class="viewsw" role="group" aria-label="Widok"><button data-v="cards">Karty</button><button data-v="table">Tabela Pro</button></div>
+  </div>
+  <div class="plist" id="cards"></div>
+  <button class="more" id="more" hidden>Pokaż kolejnych</button>
   <div class="card" id="maincard"><div class="scroll"><table id="t"><thead></thead><tbody></tbody></table></div></div>
 
   <div class="notes">
@@ -271,6 +510,7 @@ table.mini tr.sum + tr.sum td{border-top:1px solid var(--line)}
       <li><b>Gole w modelu</b> liczone są w 70% jako strzały na 60 min × skuteczność z kariery, w 30% z samych goli. Dzięki temu zawodnik, który strzela dużo, a ostatnio „nie wpada”, dostaje uczciwie wyższą szansę.</li>
       <li><b>Pech/fart</b> (zakładka Gole) – gole w ostatnich 15 meczach minus gole oczekiwane z jego strzałów. Ujemny = pech (strzela, nie wpada), dodatni = fart. <b>Seria bez …</b> – ile meczów z rzędu bez zdarzenia (w nawiasie rekord w dostępnej historii); pogrubiona, gdy zbliża się do rekordu. Serie to podgląd – <u>nie</u> zmieniają procentów; czy warto je grać, sprawdza backtest.</li>
       <li><b>Susza</b> (filtr) – pokazuje tylko zawodników w bieżącym miesiącu bez gola / asysty (min. 3 mecze w miesiącu), z serią ≥ N meczów bez G, A lub punktu, albo z pechem na strzałach. Przy nazwisku pojawia się wtedy podsumowanie, np. „październik: 0–0 w 6 m · bez G 6 m”, oraz trend minut „TOI 18,4 →+0,3” (średnia z 5 ostatnich meczów i zmiana względem 5 wcześniejszych). Czerwona strzałka ↓ = obcięte minuty o 1,5+ min – zwykle utrata roli, czyli sygnał ostrzegawczy.</li>
+      <li><b>Seria z …</b> – ile meczów z rzędu zawodnik zdobywa punkt / gola / asystę / 3+ strzały (w nawiasie rekord w dostępnych danych). Znaczek 🔥 na karcie od 3 meczów z punktem; filtr <b>Forma</b> pokazuje serie ≥ N. <b>Seria bez …</b> – odwrotnie, ile meczów bez zdarzenia.</li>
       <li><b>Historia miesięcy</b> (filtr) – miesiąc 0–0 to miesiąc z min. 3 meczami bez gola i bez asysty. „Rok do roku” porównuje ten sam miesiąc w poprzednich sezonach (min. 2 sezony danych), „kariera” – wszystkie miesiące (min. 6). Opcje ⚡ pokazują anomalię: zawodnik ma teraz miesiąc 0–0, choć wcześniej nigdy mu się to nie zdarzyło. Przy nazwisku: „październik: 0–0 0× na 5 sez. · kariera: 1× na 30 mies.”.</li>
       <li><b>TOI min</b> (filtr) – zakres oczekiwanego czasu na lodzie. Szybki wybór „17–21” zostawia zawodników z czołowych linii.</li>
       <li><b>Miesiące w karierze</b> (w rozwiniętej linii) – G–A w każdym miesiącu każdego sezonu; na czerwono miesiące 0–0, podświetlony bieżący miesiąc.</li>
@@ -283,7 +523,9 @@ table.mini tr.sum + tr.sum td{border-top:1px solid var(--line)}
 <script>
 const DATA = __DATA__;
 const M = DATA.meta, R = DATA.rows;
-const st = {m:"g", game:"", q:"", team:"", pos:"", min:0, hide:true, sort:null, dir:-1};
+const st = {m:"g", game:"", q:"", team:"", pos:"", min:0, hide:true, sort:null, dir:-1, view:"cards", limit:60};
+try{ const v = localStorage.getItem("nhl-view"); if(v === "table" || v === "cards") st.view = v; }catch(e){}
+if(matchMedia("(max-width:720px)").matches) st.view = "cards";
 const $ = s => document.querySelector(s);
 const pc = p => (p*100).toFixed(1).replace(".", ",") + "%";
 const n2 = (x,d=2) => Number(x).toFixed(d).replace(".", ",");
@@ -292,9 +534,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":
 
 try{ const t = localStorage.getItem("nhl-theme"); if(t) document.documentElement.dataset.theme = t; }catch(e){}
 $("#theme").onclick = () => {
-  const cur = document.documentElement.dataset.theme ||
-    (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-  const nx = cur === "dark" ? "light" : "dark";
+  const nx = document.documentElement.dataset.theme === "light" ? "dark" : "light";
   document.documentElement.dataset.theme = nx;
   try{ localStorage.setItem("nhl-theme", nx); }catch(e){}
 };
@@ -379,9 +619,18 @@ function renderGbar(){
   });
 }
 applyGoalies();
+try{ if(matchMedia("(max-width:720px)").matches){ $("#gbarw").open = false; $("#filtersw").open = false; } }catch(e){}
 
-$("#sub").textContent = `Mecze z dnia ${M.date} · ${M.games.length} spotkań · wygenerowano ${M.generated}`
-  + (M.calib ? ` · skalibrowany (backtest ${M.calib.od} → ${M.calib.do}, n=${Number(M.calib.n).toLocaleString("pl-PL")})` : " · bez kalibracji");
+(() => {
+  const WD = ["Niedziela","Poniedziałek","Wtorek","Środa","Czwartek","Piątek","Sobota"];
+  const d = new Date(M.date + "T12:00:00");
+  const ng = M.games.length, gw = ng === 1 ? "mecz" : (ng % 10 >= 2 && ng % 10 <= 4 && (ng % 100 < 10 || ng % 100 >= 20)) ? "mecze" : "meczów";
+  $("#hdate").innerHTML = `${WD[d.getDay()]}, ${M.date.slice(8,10)}.${M.date.slice(5,7)}<span>${ng} ${gw}</span>`;
+  $("#sub").textContent = `Zaktualizowano ${M.generated}`;
+  const cb = $("#calib");
+  if(M.calib){ cb.textContent = `✓ Skalibrowany na ${Number(M.calib.n).toLocaleString("pl-PL")} występach`; cb.title = `Backtest ${M.calib.od} – ${M.calib.do}`; }
+  else { cb.textContent = "Bez kalibracji – uruchom backtest"; cb.classList.add("off"); }
+})();
 $("#h2hfrom").textContent = M.h2h_from || "";
 $("#seas").textContent =M.seasons.map((s,i)=>`${s} ×${n2(M.weights[i])}`).join(", ");
 
@@ -390,12 +639,12 @@ function chip(id, top, label){
   const b = document.createElement("button");
   b.className = "chip" + (st.game===id ? " on" : "");
   b.innerHTML = `<small>${esc(top)}</small><b>${esc(label)}</b>`;
-  b.onclick = () => { st.game = id; renderChips(); renderGbar(); render(); };
+  b.onclick = () => { st.game = id; st.limit = 60; renderChips(); renderGbar(); render(); };
   return b;
 }
 function renderChips(){
   gamesEl.innerHTML = "";
-  gamesEl.appendChild(chip("", "wszystkie", "Wszystkie mecze"));
+  gamesEl.appendChild(chip("", "cały dzień", "Wszystkie mecze"));
   M.games.forEach(g => gamesEl.appendChild(chip(String(g.id), g.time ? g.time + " (PL)" : "", g.label)));
 }
 renderChips();
@@ -406,7 +655,7 @@ renderChips();
 
 document.querySelectorAll(".tab").forEach(b => b.onclick = () => {
   document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("on", x===b));
-  st.m = b.dataset.m; st.sort = null; st.dir = -1; render();
+  st.m = b.dataset.m; st.sort = null; st.dir = -1; st.limit = 60; render();
 });
 $("#q").oninput = e => { st.q = e.target.value.toLowerCase(); render(); };
 $("#team").onchange = e => { st.team = e.target.value; render(); };
@@ -419,6 +668,9 @@ if(R.some(r => r.elc)){
   $("#chasen").textContent = `(${R.filter(isChasing).length})`;
 }
 $("#chase").onchange = e => { st.chase = e.target.checked; render(); };
+st.hot = ""; st.hn = 5;
+$("#hot").onchange = e => { st.hot = e.target.value; $("#hnw").hidden = !st.hot; st.limit = 60; render(); };
+$("#hn").oninput = e => { st.hn = Math.max(1, +e.target.value || 1); render(); };
 st.drought = ""; st.dn = 5; st.tmin = null; st.tmax = null;
 const numOrNull = v => v === "" || v == null || isNaN(+v) ? null : +v;
 $("#tmin").oninput = e => { st.tmin = numOrNull(e.target.value); $("#tpreset").value = ""; render(); };
@@ -460,7 +712,7 @@ const LBL = {g:"G", a:"A", p:"PKT", s:"SOG"};
 function cols(){
   const m = st.m, L = LBL[m];
   const base = [
-    {k:"name", t:"Zawodnik", l:true, v:r=>r.name, h:r=>`<span class="name">${esc(r.name)}</span><span class="pos">${esc(r.pos)}${r.num?" #"+r.num:""}</span><button class="tog ${OPEN.has(r.id)?"on":""}" data-id="${r.id}">H2H ${OPEN.has(r.id)?"▾":"▸"}</button>${elcBadge(r)}${histNote(r)}${droughtNote(r)}${r.inactive?`<span class="badge">${esc(r.status)}</span>`:""}`},
+    {k:"name", t:"Zawodnik", l:true, v:r=>r.name, h:r=>`${avatar(r, 34)}<span class="name">${esc(r.name)}</span><span class="pos">${esc(r.pos)}${r.num?" #"+r.num:""}</span><button class="tog ${OPEN.has(r.id)?"on":""}" data-id="${r.id}">H2H ${OPEN.has(r.id)?"▾":"▸"}</button>${elcBadge(r)}${histNote(r)}${droughtNote(r)}${r.inactive?`<span class="badge">${esc(r.status)}</span>`:""}`},
     {k:"match", t:"Mecz", l:true, v:r=>r.game, h:r=>`<b>${esc(r.team)}</b> <span class="match">${r.home?"vs":"@"} ${esc(r.opp)} · ${esc(r.time)}</span>`
       + (r.og ? `<br><span class="gk ${r.og.rel>=1.06?"up":r.og.rel<=0.94?"down":""}" title="Bramkarz rywala (${esc(r.og.how)}); × ${n2(r.og.rel)} do goli względem ich średniego bramkarza">🥅 ${esc(r.og.name)} ${svf(r.og.sv)}${r.og.manual?" ✎":r.og.how.startsWith("faktyczny")?"":" ?"}</span>` : "")},
   ];
@@ -486,6 +738,11 @@ function cols(){
           : `<span class="${today?"vtoday":"match"}">${lab} ${m==="s" ? n2(f.s/f.gp,1)+"/m" : f[m]+" "+L} · ${f.gp} m</span>`;
         return one(fh, "🏠", r.home) + "<br>" + one(fa, "✈", !r.home);
       }},
+    {k:"hot", t: m==="s" ? "Seria 3+ SOG" : `Seria z ${L}`, v:r=>r.streak ? (r.streak["hot_"+m] || 0) : -1, h:r=>{
+      if(!r.streak) return "–";
+      const cur = r.streak["hot_"+m] || 0, mx = r.streak["hot_"+m+"_max"];
+      return `<span class="${cur >= 5 ? "hotv" : ""}">${cur >= 5 ? "🔥 " : ""}${cur} m</span>${mx != null ? ` <span class="match">(rekord ${mx})</span>` : ""}`;
+    }},
     {k:"streak", t: m==="s" ? "Seria <3 SOG" : `Seria bez ${L}`, v:r=>r.streak ? r.streak[m] : -1, h:r=>{
       if(!r.streak) return "–";
       const cur = r.streak[m], mx = r.streak[m+"_max"];
@@ -518,11 +775,75 @@ function cols(){
 }
 function mainProb(r){ return st.m==="s" ? r.m.s.p3 : r.m[st.m].p1; }
 
+const MK4 = [["g","Gol",r=>r.m.g.p1],["a","Asysta",r=>r.m.a.p1],["p","Punkt",r=>r.m.p.p1],["s","3+ SOG",r=>r.m.s.p3]];
+const HI = {g:0.35, a:0.45, p:0.65, s:0.65};          // „mocna” szansa – złoty kolor
+function playerCard(r, i){
+  const t = toiTrend(r), f = r.f10 || {}, h = r.h2h || {};
+  const fk = st.m === "s" ? "hs" : "h" + st.m, flab = st.m === "s" ? "3+ SOG" : {g:"gol",a:"asysta",p:"punkt"}[st.m];
+  const og = r.og ? `<span>🥅 <b>${esc(r.og.name)}</b> ${svf(r.og.sv)}${r.og.rel>=1.06?' <span class="up">słabszy</span>':r.og.rel<=0.94?' <span class="down">mocny</span>':""}</span>` : "";
+  return `<article class="pc ${r.inactive ? "inactive" : ""}">
+    <div class="pc-h">${avatar(r, 46)}
+      <div class="pc-id"><a href="#" class="plink pc-name" data-id="${r.id}">${esc(r.name)}</a>
+        <div class="pc-meta">${esc(r.pos)}${r.num ? " #" + r.num : ""} · <b>${esc(r.team)}</b> ${r.home ? "vs" : "@"} ${esc(r.opp)} · ${esc(r.time)}</div></div>
+      <span class="pc-rank">${i + 1}</span></div>
+    <div class="pc-badges">${hotBadge(r)}${elcBadge(r)}${histNote(r)}${droughtNote(r)}${r.inactive ? `<span class="badge">${esc(r.status)}</span>` : ""}</div>
+    <div class="odds">${MK4.map(([k, lab, fn]) => { const p = fn(r);
+      return `<button class="ob ${st.m === k ? "on" : ""} ${p >= HI[k] ? "hi" : ""}" data-id="${r.id}" aria-label="${lab}: ${pc(p)}, kurs fair ${fair(p)}">
+        <span>${lab}</span><b>${pc(p)}</b><small>${fair(p)}</small></button>`; }).join("")}</div>
+    <div class="pc-f">
+      <span>TOI <b>${n2(r.toi,1)}</b>${t ? ` <span class="${t.diff<=-1.5?"down":t.diff>=1.5?"up":""}">${t.diff>0?"+":""}${n2(t.diff,1)}</span>` : ""}</span>
+      <span>forma: ${flab} w <b>${f[fk] ?? 0}/${f.gp || 0}</b></span>
+      ${(r.streak && (r.streak["hot_" + st.m] || 0) >= 2) ? `<span>seria z ${st.m === "s" ? "3+ SOG" : flab}: <b>${r.streak["hot_" + st.m]} m</b> (rekord ${r.streak["hot_" + st.m + "_max"]})</span>` : ""}
+      <span>H2H ${esc(r.opp)}: ${flab} w <b>${h[fk] ?? 0}/${h.gp || 0}</b></span>
+      ${og}
+    </div>
+  </article>`;
+}
+function renderCards(rows){
+  const shown = rows.slice(0, st.limit);
+  $("#cards").innerHTML = shown.length ? shown.map(playerCard).join("")
+    : `<div class="empty-cards">Brak zawodników dla tych filtrów. Poluzuj filtry albo wybierz „Wszystkie mecze”.</div>`;
+  $("#cards").querySelectorAll(".ob").forEach(b => b.onclick = () => openPlayer(+b.dataset.id));
+  const left = rows.length - shown.length;
+  $("#more").hidden = left <= 0;
+  $("#more").textContent = `Pokaż kolejnych ${Math.min(60, left)} (zostało ${left})`;
+}
+function renderFilterCount(){
+  const n = [st.q, st.team, st.pos, st.min > 0, !st.hide, st.chase, st.hot, st.drought, st.hist, st.tmin != null || st.tmax != null].filter(Boolean).length;
+  $("#fcount").hidden = !n; $("#fcount").textContent = n;
+}
+document.querySelectorAll(".viewsw button").forEach(b => b.onclick = () => {
+  st.view = b.dataset.v; try{ localStorage.setItem("nhl-view", st.view); }catch(e){}
+  render();
+});
+$("#more").onclick = () => { st.limit += 60; render(); };
+
+function renderSortbar(C, sc){
+  const main = C.find(c => c.main);
+  const want = [
+    [main.k, st.m === "s" ? "Szansa 3+" : "Szansa"], ["lam", "Oczekiwane"], ["f10", "Forma 10"],
+    ["h2h", "H2H z rywalem"], ["toi", "Czas gry"], ["hot", st.m === "s" ? "Seria 3+ SOG" : "Seria z " + {g:"golem",a:"asystą",p:"punktem"}[st.m]], ["streak", "Seria bez"], ["luck", "Pech/fart"],
+    ["opp", "Obrona rywala"], ["name", "Nazwisko"],
+  ].filter(([k]) => C.some(c => c.k === k));
+  $("#sortbar").innerHTML = `<span class="sblab">Sortuj:</span>` + want.map(([k, lab]) => {
+    const on = sc.k === k;
+    return `<button class="sbtn ${on ? "on" : ""}" data-k="${k}" aria-pressed="${on}">${esc(lab)}${on ? `<span class="sdir">${st.dir < 0 ? "↓" : "↑"}</span>` : ""}</button>`;
+  }).join("");
+  $("#sortbar").querySelectorAll(".sbtn").forEach(b => b.onclick = () => {
+    const k = b.dataset.k;
+    if(st.sort === k) st.dir *= -1; else { st.sort = k; st.dir = k === "name" ? 1 : -1; }
+    render();
+  });
+}
 function render(){
   const isTop = st.m === "top";
   $("#top").hidden = !isTop;
-  document.querySelector(".controls").hidden = isTop;
-  $("#maincard").hidden = isTop;
+  $("#filtersw").hidden = isTop;
+  $("#listbar").hidden = isTop;
+  $("#cards").hidden = isTop || st.view !== "cards";
+  $("#more").hidden = true;
+  $("#maincard").hidden = isTop || st.view !== "table";
+  $("#sortbar").hidden = isTop;
   if(isTop){ renderTop(); return; }
   const C = cols();
   if(!st.sort) st.sort = C.find(c=>c.main).k;
@@ -533,13 +854,18 @@ function render(){
     (!st.pos || r.posg===st.pos) &&
     (!st.hide || !r.inactive) &&
     (!st.chase || isChasing(r)) &&
-    droughtMatch(r) && histMatch(r) &&
+    droughtMatch(r) && histMatch(r) && hotMatch(r) &&
     (st.tmin == null || r.toi >= st.tmin) && (st.tmax == null || r.toi <= st.tmax) &&
     (!st.q || r.name.toLowerCase().includes(st.q)) &&
     mainProb(r)*100 >= st.min);
   rows.sort((a,b)=>{ const x=sc.v(a), y=sc.v(b); return (x<y?-1:x>y?1:0)*st.dir; });
   $("#dcnt").textContent = (st.drought || st.hist) ? `(${rows.length})` : "";
 
+  renderSortbar(C, sc);
+  renderFilterCount();
+  document.querySelectorAll(".viewsw button").forEach(b => b.classList.toggle("on", b.dataset.v === st.view));
+  $("#lcount").textContent = `${rows.length} zawodn.`;
+  if(st.view === "cards"){ renderCards(rows); return; }
   $("#t thead").innerHTML = "<tr><th class='l'>#</th>" + C.map(c =>
     `<th class="${c.l?"l":""} ${c.k===sc.k?"sorted":""}" data-k="${c.k}">${esc(c.t)}${c.k===sc.k?(st.dir<0?" ↓":" ↑"):""}</th>`).join("") + "</tr>";
   $("#t thead").querySelectorAll("th[data-k]").forEach(th => th.onclick = () => {
@@ -559,6 +885,11 @@ function render(){
   });
 }
 
+document.addEventListener("error", e => { const t = e.target; if(t && t.tagName === "IMG" && t.closest(".av")) t.remove(); }, true);
+const ini = n => String(n).split(" ").filter(Boolean).map(x => x[0]).slice(0, 2).join("");
+function avatar(r, size){
+  return `<span class="av" style="--s:${size || 34}px">${r.img ? `<img src="${esc(r.img)}" alt="" loading="lazy" decoding="async">` : ""}<i>${esc(ini(r.name))}</i></span>`;
+}
 const OPEN = new Set();
 function setDetailWidth(){
   const sc = document.querySelector(".scroll");
@@ -572,6 +903,17 @@ const MON_FULL = {1:"styczeń",2:"luty",3:"marzec",4:"kwiecień",5:"maj",6:"czer
 function curMonth(r){
   const x = (r.months||[]).find(m => m[0]===CUR_SEASON && m[1]===CUR_MONTH);
   return x ? {gp:x[2], g:x[3], a:x[4]} : {gp:0, g:0, a:0};
+}
+function hotMatch(r){
+  if(!st.hot) return true;
+  return ((r.streak || {})["hot_" + st.hot] || 0) >= st.hn;
+}
+const HOT_MIN = 3;                                   // znaczek 🔥 na karcie od 3 meczów z punktem
+function hotBadge(r){
+  const n = (r.streak || {}).hot_p || 0;
+  if(n < HOT_MIN) return "";
+  const mx = r.streak.hot_p_max;
+  return `<span class="hotb" title="Punkt w ${n} kolejnych meczach (rekord w danych: ${mx})">🔥 ${n} m. z pkt${n >= mx && n >= 5 ? " · rekord!" : ""}</span>`;
 }
 function droughtMatch(r){
   const mode = st.drought, n = st.dn;
@@ -756,6 +1098,8 @@ function reasons(r, k){
     plus.push(`forma: ${k==="s"?"3+ SOG":TOP_MK[k].name.toLowerCase()} w ${f[hitKey]} z ${f.gp} ost. m.`);
   if(k === "g" && r.luck && r.luck.diff <= -1.5) plus.push(`pech na strzałach (${n2(r.luck.diff,1)} G vs oczek.) – już w %`);
   if(isChasing(r)) plus.push("goni bonus ELC 🎯");
+  const hk = (r.streak || {})["hot_" + k] || 0;
+  if(hk >= 5) plus.push(`seria: ${k === "s" ? "3+ SOG" : TOP_MK[k].name.toLowerCase()} w ${hk} meczach z rzędu`);
   if(r.home) plus.push("u siebie");
   if(k !== "s" && r.og && r.og.rel >= 1.06) plus.push(`słabszy bramkarz rywala: ${r.og.name} (${svf(r.og.sv)}, ×${n2(r.og.rel)})`);
   // ---- uwaga
@@ -787,8 +1131,8 @@ function pickCard(r, k, why){
   const mk = TOP_MK[k], p = mk.p(r), o = getOdds(r.id, k);
   return `<div class="pick">
     <div class="pick-h">
-      <div><a href="#" class="plink name" data-id="${r.id}" title="Pokaż H2H, formę i miesiące">${esc(r.name)} ↗</a><span class="pos"> ${esc(r.pos)}</span>
-        <div class="match"><b>${esc(r.team)}</b> ${r.home?"vs":"@"} ${esc(r.opp)} · ${esc(r.time)}</div></div>
+      <div class="pid">${avatar(r, 44)}<div><a href="#" class="plink name" data-id="${r.id}" title="Pokaż H2H, formę i miesiące">${esc(r.name)} ↗</a><span class="pos"> ${esc(r.pos)}</span>
+        <div class="match"><b>${esc(r.team)}</b> ${r.home?"vs":"@"} ${esc(r.opp)} · ${esc(r.time)}</div></div></div>
       <div class="pick-p"><div class="mk">${mk.name}</div><b>${pc(p)}</b><div class="match">kurs fair ${fair(p)}</div></div>
     </div>
     ${quickH2H(r, k)}
@@ -821,10 +1165,10 @@ function openPlayer(id){
   const P = [["Gol", r.m.g.p1], ["Asysta", r.m.a.p1], ["Punkt", r.m.p.p1], ["3+ SOG", r.m.s.p3]];
   $("#mbody").innerHTML = `
     <div class="mhead">
-      <div><span class="name" style="font-size:18px">${esc(r.name)}</span><span class="pos"> ${esc(r.pos)}${r.num?" #"+r.num:""}</span>
+      <div class="pid">${avatar(r, 64)}<div><span class="name" style="font-size:20px">${esc(r.name)}</span><span class="pos"> ${esc(r.pos)}${r.num?" #"+r.num:""}</span>
         <div class="match"><b>${esc(r.team)}</b> ${r.home?"vs":"@"} ${esc(r.opp)} · ${esc(r.time)} · TOI ${n2(r.toi,1)} min</div>
         <div class="match"><a href="#" class="th2hlink" data-g="${r.gameId}">⚔ H2H drużyn ${esc(r.game)}</a></div>
-        ${r.og ? `<div class="match">🥅 bramkarz rywala: <b>${esc(r.og.name)}</b> ${svf(r.og.sv)} (×${n2(r.og.rel)}) · ${esc(r.og.how)}</div>` : ""}</div>
+        ${r.og ? `<div class="match">🥅 bramkarz rywala: <b>${esc(r.og.name)}</b> ${svf(r.og.sv)} (×${n2(r.og.rel)}) · ${esc(r.og.how)}</div>` : ""}</div></div>
       <div class="mprobs">${P.map(([l, p]) => `<div><small>${l}</small><b>${pc(p)}</b><small>fair ${fair(p)}</small></div>`).join("")}</div>
     </div>
     ${detail(r)}`;
@@ -1085,6 +1429,23 @@ function renderTop(){
         bilans ≥ ${Math.round(MH.winPct*100)}% albo gole (śr. ≥ ${n2(MH.avgHi,1)} / ≤ ${n2(MH.avgLo,1)}, over 5,5 ≥ ${Math.round(MH.overHi*100)}% / ≤ ${Math.round(MH.overLo*100)}%). ⭐ = oba sygnały.</span></h3>
         ${good.length ? `<div class="picks">${good.map(monthCard).join("")}</div>` : `<p class="match">Dziś brak meczów spełniających warunki.</p>`}
         <p class="match">${small ? `${small} mecz(e) pominięte – za mało meczów H2H w tym miesiącu. ` : ""}Uwaga: to kilka meczów z 10 lat, przy innych składach – backtest tego nie sprawdzał. Traktuj jako tło do typu, porównaj z kursem i dzisiejszą formą drużyn oraz bramkarzami.</p>`;
+    })()}
+
+    ${(() => {
+      const HOT_SEC = 5;
+      const list = active.filter(r => ((r.streak || {}).hot_p || 0) >= HOT_SEC)
+        .sort((a, b) => (b.streak.hot_p - a.streak.hot_p) || (b.m.p.p1 - a.m.p.p1)).slice(0, 12);
+      if(!list.length) return "";
+      return `<h3 class="sec">🔥 Gorące serie zawodników <span class="match">– punkt w ${HOT_SEC}+ kolejnych meczach (sezon zasadniczy, mecze z rzędu tego zawodnika)</span></h3>
+        <div class="tgrid">${list.map(r => {
+          const sk = r.streak, f = r.f10 || {};
+          return `<div class="tbox hotbox"><div class="pid">${avatar(r, 40)}<div><a href="#" class="plink name" data-id="${r.id}">${esc(r.name)}</a>
+            <div class="match"><b>${esc(r.team)}</b> ${r.home ? "vs" : "@"} ${esc(r.opp)} · ${esc(r.time)}</div></div></div>
+            <div class="hotrow"><div><div class="hotn">${sk.hot_p}</div><div class="match">meczów z punktem${sk.hot_p >= sk.hot_p_max ? " · rekord" : ` · rekord ${sk.hot_p_max}`}</div></div>
+              <div class="hotp"><b>${pc(r.m.p.p1)}</b><div class="match">punkt dziś · fair ${fair(r.m.p.p1)}</div></div></div>
+            <div class="match">w tym gol w ${sk.hot_g ? `ostatnich ${sk.hot_g}` : "0"} z rzędu · ost. 10 m.: ${f.g ?? 0} G, ${f.a ?? 0} A</div></div>`;
+        }).join("")}</div>
+        <p class="match">Model już uwzględnia formę (ostatnie 10 meczów ważą więcej), więc procent obok serii jest „uczciwy”. Czy sama seria daje coś ponad to, pokaże backtest (tabela „seria Z punktem”).</p>`;
     })()}
 
     <h3 class="sec">📈 Najwyższe szanse wg rynku</h3>

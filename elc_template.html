@@ -4,24 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NHL – bonusy ELC</title>
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0E141D">
+__CSP__
 <style>
-:root{
-  --bg:#f6f7f9; --panel:#ffffff; --ink:#14171c; --muted:#5d6673; --line:#e3e6eb;
-  --accent:#0b5fff; --accent-soft:#e6eeff; --warn:#b45309; --warn-soft:#fff4e5;
-  --bar:#0b5fff; --bar-bg:#edf0f4; --good:#0f7b4f; --good-soft:#e5f5ec; --bad:#b42318;
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#0f1115; --panel:#171a20; --ink:#e8ebf0; --muted:#98a1ae; --line:#2a2f38;
-    --accent:#6e9bff; --accent-soft:#1d2a45; --warn:#f0a050; --warn-soft:#3a2a15;
-    --bar:#6e9bff; --bar-bg:#252a33; --good:#4cc38a; --good-soft:#15301f; --bad:#ff7a6b;
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#0f1115; --panel:#171a20; --ink:#e8ebf0; --muted:#98a1ae; --line:#2a2f38;
-  --accent:#6e9bff; --accent-soft:#1d2a45; --warn:#f0a050; --warn-soft:#3a2a15;
-  --bar:#6e9bff; --bar-bg:#252a33; --good:#4cc38a; --good-soft:#15301f; --bad:#ff7a6b;
-}
+@font-face{font-family:"Barlow";font-weight:400;font-display:swap;src:url(__FONTS__/barlow-latin-400-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Barlow";font-weight:400;font-display:swap;src:url(__FONTS__/barlow-latin-ext-400-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"Barlow";font-weight:600;font-display:swap;src:url(__FONTS__/barlow-latin-600-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Barlow";font-weight:600;font-display:swap;src:url(__FONTS__/barlow-latin-ext-600-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"Barlow";font-weight:700;font-display:swap;src:url(__FONTS__/barlow-latin-700-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Barlow";font-weight:700;font-display:swap;src:url(__FONTS__/barlow-latin-ext-700-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"Barlow Condensed";font-weight:600;font-display:swap;src:url(__FONTS__/barlow-condensed-latin-600-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Barlow Condensed";font-weight:600;font-display:swap;src:url(__FONTS__/barlow-condensed-latin-ext-600-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"Barlow Condensed";font-weight:700;font-display:swap;src:url(__FONTS__/barlow-condensed-latin-700-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Barlow Condensed";font-weight:700;font-display:swap;src:url(__FONTS__/barlow-condensed-latin-ext-700-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 .wrap{max-width:1400px;margin:0 auto;padding:20px 16px 48px}
@@ -69,18 +67,78 @@ table.mini tr:last-child td{border-bottom:0}
 .notes h3{color:var(--ink);font-size:14px;margin:16px 0 6px}
 .notes li{margin:3px 0}
 [hidden]{display:none !important}
+
+/* ===================== APLIKACJA – wspólny wygląd ===================== */
+:root{
+  --bg:#0E141D; --panel:#151D29; --raised:#1C2635; --ink:#E8EEF6; --muted:#8B98AC; --line:#263346;
+  --accent:#4D8DFF; --accent-ink:#FFFFFF; --accent-soft:#1A2C4A; --warn:#F2A65A; --warn-soft:#3A2A15;
+  --bar:#4D8DFF; --bar-bg:#24314A; --good:#34C77B; --good-soft:#123826; --bad:#FF4D5E; --gold:#F5B83D;
+  --red:#FF4D5E; --boards:#0B1018; --boards-2:#151D29; --boards-ink:#E8EEF6; --boards-muted:#8B98AC;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --r-lg:16px; --r-md:12px; --r-sm:8px;
+  --nav-h:0px;
+}
+:root[data-theme="light"]{
+  --bg:#EEF2F7; --panel:#FFFFFF; --raised:#F4F7FB; --ink:#121A26; --muted:#5C6B80; --line:#DCE3EC;
+  --accent:#1F5FD6; --accent-soft:#E2EBFA; --warn:#A2560A; --warn-soft:#FDF1E1;
+  --bar:#1F5FD6; --bar-bg:#E1E8F1; --good:#11795A; --good-soft:#E2F3EC; --bad:#D0202E; --gold:#B7791F;
+  --red:#D0202E; --boards:#FFFFFF; --boards-2:#F4F7FB; --boards-ink:#121A26; --boards-muted:#5C6B80;
+}
+html{color-scheme:dark}
+:root[data-theme="light"]{color-scheme:light}
+html,body{overflow-x:clip}
+body{font-family:var(--body);font-size:14.5px;line-height:1.5;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;
+  padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom))}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+html{color-scheme:dark}
+:root[data-theme="light"]{color-scheme:light}
+html,body{overflow-x:clip}
+body{font-family:var(--body);font-size:14.5px;line-height:1.5;background:var(--bg);color:var(--ink)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.wrap{max-width:1400px;margin:0 auto;padding:0 20px 56px}
+.appbar{display:block;margin:0;position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--boards) 88%,transparent);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+.appbar-in{max-width:1400px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;gap:12px}
+.logo{font-family:var(--display);font-size:22px;font-weight:700;color:var(--ink);text-decoration:none;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.logo i{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 50% 50%,var(--red) 0 2px,transparent 2.5px),linear-gradient(90deg,transparent 45%,var(--red) 45% 55%,transparent 55%),var(--accent);display:inline-block}
+.appbar .nav{margin-left:auto;display:flex;gap:8px}
+.btn{font:inherit;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--raised);color:var(--ink);border-radius:999px;padding:7px 14px;cursor:pointer;text-decoration:none}
+.btn:hover{border-color:var(--accent)}
+.hero{padding:22px 0 14px}
+.hero h1{font-family:var(--display);font-weight:700;font-size:40px;line-height:1;margin:0}
+.sub{color:var(--muted);font-size:13px}
+.info{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg)}
+.controls input,.controls select{background:var(--raised);color:var(--ink);border:1px solid var(--line);border-radius:var(--r-sm)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg)}
+th{background:var(--panel);color:var(--muted);font-size:12.5px;border-bottom:1px solid var(--line)}
+th.sorted{color:var(--accent)}
+tbody tr:hover{background:var(--raised)}
+.prob b{font-family:var(--display);font-size:17px;font-weight:600}
+.chip.cand{background:var(--warn-soft);color:var(--warn)}
+.chip.ok{background:var(--good-soft);color:var(--good)}
+tr.detail>td{background:var(--bg)}
+table.mini{background:var(--panel)}
+.notes h3{font-family:var(--display);font-size:20px;font-weight:600}
+.av{--s:32px;width:var(--s);height:var(--s);border-radius:50%;background:var(--raised);position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;margin:-4px 10px -4px 0;box-shadow:inset 0 0 0 1px var(--line)}
+.av i{font-style:normal;font-family:var(--display);font-weight:600;font-size:13px;color:var(--muted)}
+.av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 12%}
+@media (max-width:720px){ .wrap{padding:0 12px 40px} .appbar-in{padding:8px 12px} .hero h1{font-size:30px} }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>Bonusy ELC</h1>
-    <span class="sub" id="sub"></span>
+<header class="appbar">
+  <div class="appbar-in">
+    <a class="logo" id="logo" href="index.html"><i aria-hidden="true"></i><span>Szanse NHL</span></a>
     <div class="nav">
-      <a class="btn" id="back">← Mecze dnia</a>
-      <button class="btn" id="theme">Motyw</button>
+      <a class="btn" id="back">Mecze dnia</a>
+      <button class="btn" id="theme" aria-label="Zmień motyw jasny/ciemny">Motyw</button>
     </div>
-  </header>
+  </div>
+</header>
+<div class="wrap">
+  <section class="hero"><h1>Bonusy ELC</h1><span class="sub" id="sub"></span></section>
 
   <div class="info" id="info"></div>
 
@@ -130,12 +188,11 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;
 
 try{ const t = localStorage.getItem("nhl-theme"); if(t) document.documentElement.dataset.theme = t; }catch(e){}
 $("#theme").onclick = () => {
-  const cur = document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-  const nx = cur === "dark" ? "light" : "dark";
+  const nx = document.documentElement.dataset.theme === "light" ? "dark" : "light";
   document.documentElement.dataset.theme = nx;
   try{ localStorage.setItem("nhl-theme", nx); }catch(e){}
 };
-$("#back").href = M.back;
+$("#back").href = M.back; $("#logo").href = M.back;
 $("#sub").textContent = `Sezon ${M.season} · stan na ${M.date} · wygenerowano ${M.generated}`;
 $("#sims").textContent = M.sims.toLocaleString("pl-PL");
 $("#mgp").textContent = M.min_gp;
@@ -154,9 +211,12 @@ $("#minb").onchange = e => { st.minb = +e.target.value; render(); };
 
 const probCell = p => `<div class="prob"><span class="bar"><i style="width:${Math.min(100,p*100)}%"></i></span><b>${pc(p)}</b></div>`;
 const thLbl = (k) => `F ${String(M.thresh.F[k]).replace(".",",")} / D ${String(M.thresh.D[k]).replace(".",",")}`;
+document.addEventListener("error", e => { const t = e.target; if(t && t.tagName === "IMG" && t.closest(".av")) t.remove(); }, true);
+const ini = n => String(n).split(" ").filter(Boolean).map(x => x[0]).slice(0, 2).join("");
+const avatar = r => `<span class="av">${r.img ? `<img src="${esc(r.img)}" alt="" loading="lazy" decoding="async">` : ""}<i>${esc(ini(r.name))}</i></span>`;
 const C = [
   {k:"name", t:"Zawodnik", l:true, v:r=>r.name, h:r=>
-    `<span class="name">${esc(r.name)}</span><span class="pos"> ${esc(r.pos)}${r.age!=null?" · "+r.age+" l.":""}</span>`
+    avatar(r) + `<span class="name">${esc(r.name)}</span><span class="pos"> ${esc(r.pos)}${r.age!=null?" · "+r.age+" l.":""}</span>`
     + (r.listed ? `<span class="chip ok">z listy</span>` : `<span class="chip cand">kandydat</span>`)
     + (r.chase && r.chase.length ? `<span class="chip cand" title="w zasięgu progu w końcówce sezonu">🎯 ${r.chase.map(c=>`${c.need} ${c.lab} do ${c.th}`).join(", ")}</span>` : "")
     + `<button class="tog ${OPEN.has(r.id)?"on":""}" data-id="${r.id}">Szczegóły ${OPEN.has(r.id)?"▾":"▸"}</button>`},

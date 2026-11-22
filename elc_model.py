@@ -244,6 +244,7 @@ def run(http, day: dt.date, workers: int, contracts_path: Path, quiet=False):
         bonus = listed["bonus"] if listed else None
         rows.append({
             "id": p["id"], "name": p["name"], "num": p["num"], "pos": p["pos"], "posg": p["posg"],
+            "img": p.get("img") or f"https://assets.nhle.com/mugs/nhl/{season}/{p['team']}/{p['id']}.png",
             "team": p["team"], "age": age, "listed": bool(listed), "note": listed["note"] if listed else "",
             "prior": prior_full, "bonus": bonus,
             "cur": cur, "team_gp": team_played, "remaining": remaining, "p_play": round(p_play, 3),
@@ -280,4 +281,5 @@ def write_page(rows, day: dt.date, path: Path, back_url: str):
         "listed": sum(1 for r in rows if r["listed"]),
     }
     payload = json.dumps({"meta": meta, "rows": rows}, ensure_ascii=False).replace("</", "<\\/")
-    path.write_text(tpl.replace("__DATA__", payload), encoding="utf-8")
+    root = "" if back_url == "index.html" else None   # strona GitHub Pages vs plik lokalny
+    path.write_text(core.finalize_html(tpl.replace("__DATA__", payload), path, root), encoding="utf-8")

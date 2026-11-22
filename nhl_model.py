@@ -24,6 +24,7 @@ import datetime as dt
 import hashlib
 import json
 import math
+import re
 import sys
 import threading
 import time
@@ -175,11 +176,34 @@ def pois_ge(lam: float, k: int) -> float:
 
 
 # ---------------------------------------------------------------- pobieranie danych
+TEAM_RE = re.compile(r"^[A-Z]{2,3}$")
+IMG_PREFIX = "https://assets.nhle.com/"
+
+
+def safe_team(t) -> bool:
+    return isinstance(t, str) and bool(TEAM_RE.match(t))
+
+
+def safe_int(v):
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return None
+
+
 def get_schedule(http: Http, day: dt.date):
     data = http.get(f"{API}/schedule/{day.isoformat()}", ttl_hours=1.0) or {}
     for wk in data.get("gameWeek", []) or []:
         if wk.get("date") == day.isoformat():
-            return [g for g in wk.get("games", []) if g.get("gameType") in (2, 3)]
+            out = []
+            for g in wk.get("games", []) or []:
+                if g.get("gameType") not in (2, 3) or safe_int(g.get("id")) is None:
+                    continue
+                if not (safe_team(g.get("homeTeam", {}).get("abbrev")) and safe_team(g.get("awayTeam", {}).get("abbrev"))):
+                    continue  # nieoczekiwany format danych – pomijamy mecz zamiast wstawiać go do strony
+                g["id"] = safe_int(g["id"])
+                out.append(g)
+            return out
     return []
 
 
@@ -228,14 +252,17 @@ def get_roster(http: Http, team: str, season: int | None):
     out = []
     for grp, posg in (("forwards", "F"), ("defensemen", "D")):
         for p in data.get(grp, []) or []:
+            if safe_int(p.get("id")) is None:
+                continue
             out.append({
-                "id": p["id"],
+                "id": safe_int(p.get("id")),
                 "name": f"{nm(p.get('firstName'))} {nm(p.get('lastName'))}".strip(),
-                "num": p.get("sweaterNumber"),
+                "num": safe_int(p.get("sweaterNumber")),
                 "pos": p.get("positionCode", posg),
                 "posg": posg,
                 "team": team,
                 "birth": p.get("birthDate", ""),
+                "img": p["headshot"] if str(p.get("headshot", "")).startswith(IMG_PREFIX) else "",
             })
     return out
 
@@ -404,6 +431,20 @@ def streaks(games):
             break
         s3 += 1
     out["s"] = s3
+    # serie Z zdarzeniem („gorąca ręka”): ile meczów z rzędu z golem / asystą / punktem / 3+ strzałami, i rekord
+    for k, test in (("g", lambda x: x["g"] > 0), ("a", lambda x: x["a"] > 0),
+                    ("p", lambda x: x["p"] > 0), ("s", lambda x: x["s"] >= 3)):
+        cur = 0
+        for x in reversed(games):
+            if not test(x):
+                break
+            cur += 1
+        best = run = 0
+        for x in games:
+            run = run + 1 if test(x) else 0
+            best = max(best, run)
+        out["hot_" + k] = cur
+        out["hot_" + k + "_max"] = best
     return out
 
 
@@ -481,6 +522,7 @@ def build_row(pl, game, games, as_of, team_dates, factors, season, gk=None):
         t_pl = ""
     return {
         "id": pl["id"], "name": pl["name"], "num": pl["num"], "pos": pl["pos"], "posg": pl["posg"],
+        "img": pl.get("img") or f"https://assets.nhle.com/mugs/nhl/{season}/{team}/{pl['id']}.png",
         "team": team, "opp": opp, "home": is_home,
         "gameId": game["id"], "game": f"{away_team} @ {home_team}", "time": t_pl,
         "status": status, "inactive": status != "OK",
@@ -591,6 +633,9 @@ CSV_COLS = [
     ("Seria bez G", lambda r: r["streak"]["g"]), ("Seria bez A", lambda r: r["streak"]["a"]),
     ("Seria bez PKT", lambda r: r["streak"]["p"]), ("Najdłuższa seria bez G", lambda r: r["streak"]["g_max"]),
     ("Najdłuższa seria bez PKT", lambda r: r["streak"]["p_max"]),
+    ("Seria z G", lambda r: r["streak"]["hot_g"]), ("Seria z A", lambda r: r["streak"]["hot_a"]),
+    ("Seria z PKT", lambda r: r["streak"]["hot_p"]), ("Rekord serii z PKT", lambda r: r["streak"]["hot_p_max"]),
+    ("Seria 3+ SOG", lambda r: r["streak"]["hot_s"]),
     (f"Gole ost. {LUCK_GAMES}m", lambda r: r["luck"]["g"]), (f"Oczek. gole ost. {LUCK_GAMES}m", lambda r: r["luck"]["xg"]),
     ("Pech/fart G", lambda r: r["luck"]["diff"]),
     ("Forma10 mecze z golem",lambda r: r["f10"]["hg"]), ("Forma10 mecze z punktem", lambda r: r["f10"]["hp"]),
@@ -612,12 +657,21 @@ def fair(p):
     return round(1 / p, 2) if p > 0.001 else ""
 
 
+def csv_safe(v):
+    """Excel/Calc traktują komórki zaczynające się od = + - @ (i tab/CR) jako formuły – neutralizujemy tekst."""
+    if isinstance(v, float):
+        return str(v).replace(".", ",")
+    if isinstance(v, str) and v and v[0] in "=+-@\t\r" and not re.match(r"^-?\d", v):
+        return "'" + v
+    return v
+
+
 def write_csv(rows, path: Path):
     with path.open("w", newline="", encoding="utf-8-sig") as f:
         w = csv.writer(f, delimiter=";")
         w.writerow([c for c, _ in CSV_COLS])
         for r in sorted(rows, key=lambda r: (r["game"], -r["m"]["p"]["p1"])):
-            w.writerow([str(fn(r)).replace(".", ",") if isinstance(fn(r), float) else fn(r) for _, fn in CSV_COLS])
+            w.writerow([csv_safe(fn(r)) for _, fn in CSV_COLS])
 
 
 def write_html(rows, games, day: dt.date, path: Path, root: str | None = None, csv_url: str | None = None,
@@ -648,7 +702,40 @@ def write_html(rows, games, day: dt.date, path: Path, root: str | None = None, c
         } for g in games],
     }
     payload = json.dumps({"meta": meta, "rows": rows}, ensure_ascii=False).replace("</", "<\\/")
-    path.write_text(tpl.replace("__DATA__", payload), encoding="utf-8")
+    path.write_text(finalize_html(tpl.replace("__DATA__", payload), path, root), encoding="utf-8")
+
+
+FONTS_SRC = Path(__file__).with_name("fonts")
+
+
+def finalize_html(html: str, path: Path, root):
+    """Czcionki z własnego serwera + polityka bezpieczeństwa treści (CSP) z odciskiem skryptu strony.
+    root=None -> tryb lokalny (plik na dysku), root='' / '../' -> strona GitHub Pages."""
+    import base64
+    import hashlib
+    import shutil
+    fonts_rel = (root or "") + "fonts"
+    dest = (path.parent / fonts_rel).resolve()
+    if FONTS_SRC.is_dir():
+        dest.mkdir(parents=True, exist_ok=True)
+        for f in FONTS_SRC.iterdir():
+            t = dest / f.name
+            if f.is_file() and (not t.exists() or t.stat().st_size != f.stat().st_size):
+                shutil.copyfile(f, t)
+    html = html.replace("__FONTS__", fonts_rel)
+    meta = ""
+    if root is not None:
+        m = re.search(r"<script>(.*?)</script>", html, re.S)
+        h = base64.b64encode(hashlib.sha256(m.group(1).encode("utf-8")).digest()).decode()
+        csp = ("default-src 'none'; "
+               f"script-src 'sha256-{h}'; "
+               "style-src 'unsafe-inline'; "
+               "font-src 'self'; "
+               "img-src 'self' data: https://assets.nhle.com; "
+               "connect-src 'self'; "
+               "base-uri 'none'; form-action 'none'; object-src 'none'")
+        meta = f'<meta http-equiv="Content-Security-Policy" content="{csp}">'
+    return html.replace("__CSP__", meta)
 
 
 def write_site(rows, games, day: dt.date, site: Path, elc: bool = False):
@@ -690,7 +777,7 @@ def backtest(http: Http, start: dt.date, end: dt.date, workers: int, out_dir: Pa
     import numpy as np
     global CALIB
     saved, CALIB = CALIB, None
-    cols = {k: [] for k in ("date", "lam_g", "lam_a", "lam_p", "lam_s", "g", "a", "p", "s", "sg", "sp", "luck")}
+    cols = {k: [] for k in ("date", "lam_g", "lam_a", "lam_p", "lam_s", "g", "a", "p", "s", "sg", "sp", "luck", "hg", "hp")}
     names = []
     day = start
     try:
@@ -709,6 +796,8 @@ def backtest(http: Http, start: dt.date, end: dt.date, workers: int, out_dir: Pa
                     cols[k].append(actual[k])
                 cols["sg"].append(r["streak"]["g"])
                 cols["sp"].append(r["streak"]["p"])
+                cols["hg"].append(r["streak"]["hot_g"])
+                cols["hp"].append(r["streak"]["hot_p"])
                 cols["luck"].append(r["luck"]["diff"])
                 names.append((r["name"], r["team"], r["opp"]))
             print(f"  {day}: {len(games)} meczów, {n_day} zawodników ocenionych", flush=True)
@@ -750,7 +839,7 @@ def backtest(http: Http, start: dt.date, end: dt.date, workers: int, out_dir: Pa
 
     P = calib.probs(D, cal)
     report_streaks(list(zip(D["sg"], D["sp"], D["luck"], P["Gol 1+"][0], P["Punkt 1+"][0],
-                            P["Gol 1+"][1], P["Punkt 1+"][1])))
+                            P["Gol 1+"][1], P["Punkt 1+"][1], D["hg"], D["hp"])))
 
     path = out_dir / f"backtest_{start}_{end}.csv"
     with path.open("w", newline="", encoding="utf-8-sig") as f:
@@ -819,6 +908,10 @@ def report_streaks(recs):
                 ("5–7 meczów", 5, 8), ("8–12 meczów", 8, 13), ("13+ meczów", 13, 10**6)]
     table("Gol w meczu – wg bieżącej serii bez gola", 0, streak_b, 3, 5)
     table("Punkt w meczu – wg bieżącej serii bez punktu", 1, streak_b, 4, 6)
+    hot_b = [("0 (ost. mecz bez)", 0, 1), ("1 mecz", 1, 2), ("2–3 mecze", 2, 4), ("4–5 meczów", 4, 6),
+             ("6–8 meczów", 6, 9), ("9+ meczów", 9, 10**6)]
+    table("Punkt w meczu – wg bieżącej serii Z punktem (gorąca ręka)", 8, hot_b, 4, 6)
+    table("Gol w meczu – wg bieżącej serii Z golem", 7, hot_b, 3, 5)
     luck_b = [("pech ≤ −3 G", -99, -3), ("pech −3…−1,5", -3, -1.5), ("−1,5…−0,5", -1.5, -0.5),
               ("w normie ±0,5", -0.5, 0.5), ("+0,5…+1,5", 0.5, 1.5), ("fart +1,5…+3", 1.5, 3), ("fart ≥ +3", 3, 99)]
     table(f"Gol w meczu – wg pecha/fartu (gole − oczekiwane ze strzałów, ost. {LUCK_GAMES} m)", 2, luck_b, 3, 5)

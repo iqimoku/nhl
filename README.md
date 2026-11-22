@@ -57,7 +57,7 @@ Strona sama aktualizuje się codziennie przez GitHub Actions. Nic nie trzeba ins
 5. W zakładce **Actions** wybierz „Raport NHL”, kliknij **Run workflow** i zostaw pole daty puste. Pierwszy przebieg trwa 5–15 minut, następne około minuty.
 6. Strona będzie pod adresem `https://TWOJA-NAZWA.github.io/nhl-model/`.
 
-Od tej chwili raport aktualizuje się automatycznie **dwa razy dziennie**: około 13:17 i 22:17 czasu polskiego. Wieczorna aktualizacja wyłapuje zmiany w składach. Godziny zmienisz w `.github/workflows/raport.yml`; podaje się je w czasie UTC.
+Od tej chwili raport aktualizuje się automatycznie **dwa razy dziennie**: około **11:00** i **18:00** czasu polskiego (latem 12:00 i 19:00). Wieczorna aktualizacja wyłapuje zmiany w składach po porannych treningach. Godziny zmienisz w `.github/workflows/raport.yml`; podaje się je w czasie UTC.
 
 Na stronie:
 
@@ -123,6 +123,26 @@ Wszystkie parametry są na górze pliku `nhl_model.py` (sekcja „parametry mode
 - **Miesiące w karierze** (w rozwiniętej linii zawodnika): G–A w każdym miesiącu każdego sezonu. Miesiące 0–0 są zaznaczone na czerwono.
 
 Serie i miesiące są tylko **podglądem** i nie zmieniają procentów. Czy na „przełamanie serii” warto grać, rozstrzyga backtest (niżej): pokazuje, czy zawodnicy po serii zer trafiają częściej, niż przewidział model.
+
+## Bramkarze
+
+Oficjalne API NHL nie podaje potwierdzonego bramkarza przed meczem. Model go więc **przewiduje**: wybiera tego, kto bronił najczęściej w ostatnich 10 meczach, a przy meczu dzień po dniu (back-to-back), gdy pierwszy bramkarz grał wczoraj, zmiennika. Siła bramkarza to skuteczność obron z 3 sezonów, wygładzona do średniej. Model zastępuje nią „średniego” bramkarza drużyny w obronie rywala. Wpływa to na gole, asysty i punkty, ale nie na liczbę strzałów.
+
+W raporcie, w pasku **🥅 Bramkarze** u góry, możesz zmienić bramkarza każdej drużyny. Procenty przeliczają się wtedy od razu w przeglądarce, także w zakładce Typy dnia. Wybór zapamiętuje się w twojej przeglądarce na dany dzień. Potwierdzenia bramkarzy pojawiają się zwykle około 17–19 czasu polskiego, w serwisach typu Daily Faceoff i u dziennikarzy przy drużynach.
+
+W backteście model używa bramkarza, który faktycznie bronił w danym meczu.
+
+## Bezpieczeństwo (przegląd wg OWASP Top 10)
+
+| Ryzyko OWASP | Co zrobiono |
+|---|---|
+| A01 Kontrola dostępu | Automaty na GitHubie mają domyślnie zero uprawnień. Tylko zadanie, które zapisuje raport albo kalibrację, dostaje prawo zapisu treści repozytorium. |
+| A03 Wstrzyknięcia | Dane z API NHL są sprawdzane (skróty drużyn, numery, adresy zdjęć tylko z assets.nhle.com), a każdy tekst wstawiany na stronę jest zabezpieczany. Daty wpisane w formularzu „Run workflow” trafiają do komend wyłącznie jako zmienne i tylko w formacie RRRR-MM-DD. Eksport CSV neutralizuje formuły Excela (komórki zaczynające się od = + − @). |
+| A05 Konfiguracja | Każda strona ma politykę bezpieczeństwa treści (CSP): wykonuje się tylko jej własny skrypt, rozpoznawany po odcisku SHA-256, zdjęcia ładują się tylko z serwerów NHL, a nic nie jest wysyłane na zewnątrz. Do serwerów NHL nie jest wysyłany adres strony (no-referrer). |
+| A06 / A08 Zależności i łańcuch dostaw | Akcje GitHuba są przypięte do konkretnych commitów, a biblioteki Pythona do konkretnych wersji. Dependabot co tydzień proponuje aktualizacje (`.github/dependabot.yml`). Czcionki są w repozytorium (folder `fonts`, licencja OFL), zamiast ładować się z Google Fonts, więc strona nie przekazuje adresów IP odwiedzających do Google (RODO). |
+| A02, A04, A07, A09, A10 | Nie dotyczą: strona jest statyczna, bez logowania, haseł, formularzy i serwera. Model łączy się tylko z oficjalnym API NHL przez HTTPS. |
+
+Kursy wpisane w Typach dnia i wybór bramkarzy są zapisywane wyłącznie w twojej przeglądarce i nigdzie nie są wysyłane.
 
 ## Kalibracja
 

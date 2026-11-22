@@ -43,8 +43,14 @@ def _toi(s):
 def roster(http, api, team, season):
     path = "current" if season is None else str(season)
     data = http.get(f"{api}/roster/{team}/{path}", ttl_hours=6.0) or {}
-    return [{"id": g["id"], "name": f"{_nm(g.get('firstName'))} {_nm(g.get('lastName'))}".strip()}
-            for g in data.get("goalies", []) or []]
+    out = []
+    for g in data.get("goalies", []) or []:
+        try:
+            gid = int(g.get("id"))
+        except (TypeError, ValueError):
+            continue
+        out.append({"id": gid, "name": f"{_nm(g.get('firstName'))} {_nm(g.get('lastName'))}".strip()})
+    return out
 
 
 def game_log(http, api, pid, seasons, live_season):
